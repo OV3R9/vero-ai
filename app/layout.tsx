@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { Toaster } from "react-hot-toast";
+import { AccessibilityButton } from "@/components/AccessabilityWidget";
 
 const _Inter = Inter({ subsets: ["latin"] });
 
@@ -43,6 +44,7 @@ export default function RootLayout({
           {children}
           <Analytics />
         </QueryProvider>
+        <AccessibilityButton />
       </body>
     </html>
   );
