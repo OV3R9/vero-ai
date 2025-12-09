@@ -23,8 +23,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
 import supabase from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
-type ResultStatus = "phishing" | "safe" | "suspicious" | null;
+type ResultStatus = "phishing" | "safe" | "suspicious";
 
 interface LinkAnalysis {
   url: string;
@@ -130,6 +131,17 @@ const EmailChecker = () => {
     }
   };
 
+  const getLinkStatusUnderline = (status: LinkAnalysis["status"]) => {
+    switch (status) {
+      case "dangerous":
+        return "decoration-destructive bg-destructive/10";
+      case "suspicious":
+        return "decoration-yellow-600 bg-yellow-500/10";
+      case "safe":
+        return "decoration-green-600 bg-green-500/10";
+    }
+  };
+
   const getLinkStatusLabel = (status: LinkAnalysis["status"]) => {
     switch (status) {
       case "dangerous":
@@ -187,7 +199,7 @@ const EmailChecker = () => {
               rows={8}
             />
             <p className="text-xs text-muted-foreground">
-              Wskazówka: Wklej całą treść e-maila - nasza AI przeanalizuje
+              Wskazówka: Wklej całą treść e-maila - nasze AI przeanalizuje
               również wszystkie linki
             </p>
           </div>
@@ -204,10 +216,7 @@ const EmailChecker = () => {
                 Analizuję e-mail...
               </>
             ) : (
-              <>
-                <Shield className="w-5 h-5 mr-2" />
-                Sprawdź e-mail
-              </>
+              <>Sprawdź e-mail</>
             )}
           </Button>
         </CardContent>
@@ -229,8 +238,7 @@ const EmailChecker = () => {
             </div>
 
             <div className="space-y-6">
-              {/* Sender Analysis */}
-              <div className="p-4 bg-background rounded-lg">
+              <div className="p-4 bg-background rounded-lg border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
                   <h4 className="font-medium text-foreground">
@@ -245,19 +253,18 @@ const EmailChecker = () => {
                 </p>
               </div>
 
-              {/* Content Warnings */}
               {result.contentWarnings.length > 0 && (
                 <div>
                   <h4 className="font-medium text-foreground mb-2">
                     Ostrzeżenia dotyczące treści:
                   </h4>
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {result.contentWarnings.map((warning, index) => (
                       <li
                         key={index}
-                        className="flex items-start gap-2 text-sm text-muted-foreground"
+                        className="flex items-start gap-2 text-sm text-muted-foreground bg-background p-2 border-border border rounded-md"
                       >
-                        <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <AlertTriangle className="m-1 w-4 h-4 text-destructive shrink-0" />
                         {warning}
                       </li>
                     ))}
@@ -265,7 +272,6 @@ const EmailChecker = () => {
                 </div>
               )}
 
-              {/* Link Analysis */}
               {result.linkAnalysis.length > 0 && (
                 <div>
                   <h4 className="font-medium text-foreground mb-2">
@@ -273,12 +279,23 @@ const EmailChecker = () => {
                   </h4>
                   <div className="space-y-2">
                     {result.linkAnalysis.map((link, index) => (
-                      <div key={index} className="p-3 bg-background rounded-lg">
-                        <div className="flex items-center gap-2 mb-1">
+                      <div
+                        key={index}
+                        className="p-3 bg-background rounded-lg border-border border"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
                           <LinkIcon className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm text-foreground truncate flex-1">
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              "text-sm text-foreground truncate underline inline-block",
+                              getLinkStatusUnderline(link.status)
+                            )}
+                          >
                             {link.url}
-                          </span>
+                          </a>
                           <span
                             className={`text-xs px-2 py-1 rounded-full font-medium ${getLinkStatusColor(
                               link.status
@@ -296,13 +313,8 @@ const EmailChecker = () => {
                 </div>
               )}
 
-              {/* Recommendation */}
               <div
-                className={`p-4 rounded-lg ${
-                  result.status === "phishing"
-                    ? "bg-destructive/10"
-                    : "bg-background"
-                }`}
+                className={`p-4 rounded-lg border-border border bg-background`}
               >
                 <h4 className="font-medium text-foreground mb-1">Zalecenie:</h4>
                 <p className="text-sm text-muted-foreground">

@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
 const PasswordGenerator = () => {
   const [passwordLength, setPasswordLength] = useState(16);
@@ -83,6 +84,34 @@ const PasswordGenerator = () => {
   };
 
   const strength = getPasswordStrength();
+
+  const generateStyles = () => {
+    if (!generatedPassword) return { border: null, bg: null, button: null };
+
+    const length = generatedPassword.length;
+
+    if (length >= 16 && includeUppercase && includeNumbers && includeSymbols) {
+      return {
+        border: "border-green-500/50",
+        bg: "bg-green-500/5",
+        button: "bg-green-600 hover:bg-green-700",
+      };
+    }
+
+    if (length >= 12) {
+      return {
+        border: "border-yellow-500/50",
+        bg: "bg-yellow-500/5",
+        button: "bg-yellow-600 hover:bg-yellow-700",
+      };
+    }
+
+    return {
+      border: "border-destructive/50",
+      bg: "bg-destructive/5",
+      button: "bg-destructive hover:bg-destructive/80",
+    };
+  };
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -172,21 +201,27 @@ const PasswordGenerator = () => {
       )}
 
       {generatedPassword && (
-        <Card>
+        <Card className={cn(generateStyles().border, generateStyles().bg)}>
           <CardContent className="pt-6 space-y-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-lg font-semibold text-foreground">
-                Twoje hasło
+                Twoje hasło:
               </h3>
               <Button variant="outline" size="sm" onClick={copyToClipboard}>
                 <Copy className="w-4 h-4 mr-1" /> Kopiuj
               </Button>
             </div>
-            <p className="font-mono text-2xl break-all">{generatedPassword}</p>
+            <p className="font-mono text-2xl break-all bg-background border-border border inline-block p-2 px-3 rounded-md">
+              {generatedPassword}
+            </p>
             <p className="text-xs text-muted-foreground">
               Siła hasła: {strength.label}
             </p>
-            <Button onClick={resetGenerator} className="w-full mt-4" size="lg">
+            <Button
+              onClick={resetGenerator}
+              className={cn("w-full mt-4 transitionl", generateStyles().button)}
+              size="lg"
+            >
               Generuj nowe hasło
             </Button>
           </CardContent>

@@ -289,7 +289,7 @@ export default function ArticleChecker() {
                   </ul>
                 </div>
 
-                <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border-border">
+                <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-border">
                   <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-1">
                     Zalecenie:
                   </h4>

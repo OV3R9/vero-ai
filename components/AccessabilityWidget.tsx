@@ -97,10 +97,10 @@ export function AccessibilityButton() {
         onClick={() => setOpen(true)}
         size="icon"
         variant="outline"
-        className="fixed bottom-4 right-4 z-50 size-14 rounded-full shadow-lg"
+        className="fixed bottom-4 bg-primary right-4 z-50 size-14 border-0 rounded-full shadow-lg"
         aria-label="Otwórz ustawienia dostępności"
       >
-        <AccessibilityIcon className="size-6" />
+        <AccessibilityIcon className="size-6 text-white" />
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
