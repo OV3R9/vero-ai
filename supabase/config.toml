@@ -2,3 +2,7 @@ project_id = "icozfqmulxcjeavjydre"
 
 [functions.check-ai-image]
 verify_jwt = false
+
+[functions.check-fake-news]
+verify_jwt = false
+

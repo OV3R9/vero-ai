@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import {
-  Link as LinkIcon,
+  Link,
   Loader2,
   CheckCircle,
-  AlertTriangle,
   XCircle,
   ExternalLink,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,23 +19,22 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "react-hot-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import supabase from "@/lib/supabase/client";
 
-type ResultStatus = "fake" | "credible" | "uncertain" | null;
-
-interface AnalysisResult {
-  status: ResultStatus;
-  confidence: number;
-  title: string;
-  source: string;
-  reasons: string[];
-  recommendation: string;
-}
-
-const ArticleChecker = () => {
+export default function ArticleChecker() {
   const [articleUrl, setArticleUrl] = useState("");
+  const [articleContent, setArticleContent] = useState("");
+  const [activeTab, setActiveTab] = useState("url");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [result, setResult] = useState<{
+    isAI: boolean;
+    confidence: number;
+    reasoning: string;
+    indicators: string[];
+  } | null>(null);
 
   const isValidUrl = (url: string) => {
     try {
@@ -46,218 +45,332 @@ const ArticleChecker = () => {
     }
   };
 
-  const analyzeArticle = async () => {
-    if (!articleUrl) {
-      toast.error("Wklej link do artykułu, który chcesz sprawdzić.");
-      return;
-    }
+  const fetchArticleContent = async (url: string) => {
+    setIsFetching(true);
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
+        url
+      )}`;
+      const response = await fetch(proxyUrl);
+      const data = await response.json();
 
-    if (!isValidUrl(articleUrl)) {
-      toast.error("Upewnij się, że wklejony link jest poprawny.");
-      return;
+      if (data.contents) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, "text/html");
+
+        doc
+          .querySelectorAll("script, style, nav, header, footer")
+          .forEach((el) => el.remove());
+
+        const article =
+          doc.querySelector("article") || doc.querySelector("main") || doc.body;
+        const text = article?.innerText || "";
+
+        const cleanedText = text.replace(/\s+/g, " ").trim().substring(0, 5000);
+
+        if (cleanedText.length > 100) {
+          setArticleContent(cleanedText);
+          return cleanedText;
+        } else {
+          throw new Error("Nie udało się wyodrębnić treści artykułu");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching article:", error);
+      alert("Nie udało się pobrać artykułu. Spróbuj wkleić treść ręcznie.");
+      return null;
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const analyzeArticle = async () => {
+    let contentToAnalyze = "";
+
+    if (activeTab === "url") {
+      if (!articleUrl) {
+        alert("Wklej link do artykułu, który chcesz sprawdzić.");
+        return;
+      }
+
+      if (!isValidUrl(articleUrl)) {
+        alert("Upewnij się, że wklejony link jest poprawny.");
+        return;
+      }
+
+      if (!articleContent) {
+        const fetchedContent = await fetchArticleContent(articleUrl);
+        if (!fetchedContent) return;
+        contentToAnalyze = fetchedContent;
+      } else {
+        contentToAnalyze = articleContent;
+      }
+    } else {
+      if (!articleContent || articleContent.trim().length < 50) {
+        alert("Wklej treść artykułu (minimum 50 znaków).");
+        return;
+      }
+      contentToAnalyze = articleContent;
     }
 
     setIsAnalyzing(true);
     setResult(null);
 
-    // Simulate API call - replace with actual AI analysis
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "check-fake-news",
+        {
+          body: {
+            newsContent: contentToAnalyze,
+          },
+        }
+      );
 
-    // Mock results - in production this would come from an AI API
-    const mockResults: AnalysisResult[] = [
-      {
-        status: "fake",
-        confidence: 78,
-        title: "Analiza artykułu",
-        source: new URL(articleUrl).hostname,
-        reasons: [
-          "Artykuł zawiera sensacyjny nagłówek bez poparcia w treści",
-          "Brak odnośników do wiarygodnych źródeł",
-          "Strona nie posiada informacji o autorze",
-        ],
-        recommendation:
-          "Zalecamy sprawdzenie tej informacji w innych, wiarygodnych źródłach przed jej udostępnieniem.",
-      },
-      {
-        status: "credible",
-        confidence: 89,
-        title: "Analiza artykułu",
-        source: new URL(articleUrl).hostname,
-        reasons: [
-          "Artykuł pochodzi z uznanego źródła informacji",
-          "Zawiera odnośniki do źródeł i cytatów",
-          "Autor jest podpisany i możliwy do zweryfikowania",
-        ],
-        recommendation:
-          "Artykuł wydaje się wiarygodny, ale zawsze warto porównać informacje z innymi źródłami.",
-      },
-      {
-        status: "uncertain",
-        confidence: 52,
-        title: "Analiza artykułu",
-        source: new URL(articleUrl).hostname,
-        reasons: [
-          "Źródło nie jest powszechnie znane",
-          "Artykuł zawiera zarówno fakty jak i opinie bez wyraźnego rozróżnienia",
-          "Trudno zweryfikować niektóre podane informacje",
-        ],
-        recommendation:
-          "Zalecamy ostrożność. Sprawdź informacje w co najmniej dwóch innych źródłach.",
-      },
-    ];
+      if (error) {
+        throw new Error(error.message);
+      }
 
-    setResult(mockResults[Math.floor(Math.random() * mockResults.length)]);
-    setIsAnalyzing(false);
-  };
-
-  const getResultIcon = (status: ResultStatus) => {
-    switch (status) {
-      case "fake":
-        return <XCircle className="w-8 h-8 text-destructive" />;
-      case "credible":
-        return <CheckCircle className="w-8 h-8 text-green-600" />;
-      case "uncertain":
-        return <AlertTriangle className="w-8 h-8 text-yellow-600" />;
-      default:
-        return null;
+      setResult(data);
+    } catch (error) {
+      console.error("Error analyzing article:", error);
+      alert("Wystąpił błąd podczas analizy. Spróbuj ponownie.");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  const getResultTitle = (status: ResultStatus) => {
-    switch (status) {
-      case "fake":
-        return "Prawdopodobnie fałszywa informacja";
-      case "credible":
-        return "Prawdopodobnie wiarygodny artykuł";
-      case "uncertain":
-        return "Wiarygodność niepewna";
-      default:
-        return "";
+  const getResultIcon = (isAI: boolean) => {
+    if (isAI) {
+      return <XCircle className="w-8 h-8 text-red-600" />;
+    } else {
+      return <CheckCircle className="w-8 h-8 text-green-600" />;
     }
   };
 
-  const getResultColor = (status: ResultStatus) => {
-    switch (status) {
-      case "fake":
-        return "border-destructive/50 bg-destructive/5";
-      case "credible":
-        return "border-green-500/50 bg-green-500/5";
-      case "uncertain":
-        return "border-yellow-500/50 bg-yellow-500/5";
-      default:
-        return "";
+  const getResultTitle = (isAI: boolean) => {
+    if (isAI) {
+      return "Prawdopodobnie fałszywa informacja";
+    } else {
+      return "Prawdopodobnie wiarygodny artykuł";
+    }
+  };
+
+  const getResultColor = (isAI: boolean) => {
+    if (isAI) {
+      return "border-red-500/50 bg-red-500/5";
+    } else {
+      return "border-green-500/50 bg-green-500/5";
+    }
+  };
+
+  const getResultDescription = (isAI: boolean, confidence: number) => {
+    if (isAI) {
+      return `System wykrył cechy fałszywej informacji (pewność: ${confidence}%)`;
+    } else {
+      return `Artykuł wydaje się wiarygodny (pewność: ${confidence}%)`;
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Weryfikator Wiadomości
-        </h1>
-        <p className="text-muted-foreground">
-          Sprawdź czy artykuł zawiera prawdziwe informacje czy to fake news
-        </p>
-      </div>
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
+      <div className="max-w-3xl mx-auto py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            Weryfikator Wiadomości
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Sprawdź czy artykuł zawiera prawdziwe informacje czy to fake news
+          </p>
+        </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Wklej link do artykułu</CardTitle>
-          <CardDescription>
-            Skopiuj adres URL artykułu, który chcesz zweryfikować
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="articleUrl">Link do artykułu</Label>
-            <Input
-              id="articleUrl"
-              type="url"
-              placeholder="https://example.com/artykul"
-              value={articleUrl}
-              onChange={(e) => {
-                setArticleUrl(e.target.value);
-                setResult(null);
-              }}
-            />
-          </div>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Dodaj artykuł do weryfikacji</CardTitle>
+            <CardDescription>
+              Wklej link lub treść artykułu, który chcesz sprawdzić
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="url" className="gap-2">
+                  <Link className="w-4 h-4" />
+                  Link URL
+                </TabsTrigger>
+                <TabsTrigger value="content" className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  Treść artykułu
+                </TabsTrigger>
+              </TabsList>
 
-          {articleUrl && isValidUrl(articleUrl) && (
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-              <ExternalLink className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground truncate">
-                {new URL(articleUrl).hostname}
-              </span>
-            </div>
-          )}
+              <TabsContent value="url" className="space-y-6 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="articleUrl">Link do artykułu</Label>
+                  <Input
+                    id="articleUrl"
+                    type="url"
+                    placeholder="https://example.com/artykul"
+                    value={articleUrl}
+                    onChange={(e) => {
+                      setArticleUrl(e.target.value);
+                      setArticleContent("");
+                      setResult(null);
+                    }}
+                  />
+                </div>
 
-          <Button
-            onClick={analyzeArticle}
-            disabled={isAnalyzing || !articleUrl}
-            className="w-full"
-            size="lg"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Analizuję artykuł...
-              </>
-            ) : (
-              <>
-                <LinkIcon className="w-5 h-5 mr-2" />
-                Sprawdź artykuł
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+                {articleUrl && isValidUrl(articleUrl) && (
+                  <div className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                    <ExternalLink className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                    <span className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                      {new URL(articleUrl).hostname}
+                    </span>
+                  </div>
+                )}
 
-      {result && (
-        <Card className={`${getResultColor(result.status)} border-2`}>
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4 mb-6">
-              {getResultIcon(result.status)}
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-foreground mb-1">
-                  {getResultTitle(result.status)}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Pewność analizy: {result.confidence}% • Źródło:{" "}
-                  {result.source}
-                </p>
-              </div>
-            </div>
+                {!articleContent && articleUrl && isValidUrl(articleUrl) && (
+                  <Button
+                    onClick={() => fetchArticleContent(articleUrl)}
+                    disabled={isFetching}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {isFetching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Pobieram artykuł...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Pobierz treść artykułu
+                      </>
+                    )}
+                  </Button>
+                )}
 
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-foreground mb-2">
-                  Powody oceny:
-                </h4>
-                <ul className="space-y-2">
-                  {result.reasons.map((reason, index) => (
-                    <li
-                      key={index}
-                      className="flex items-start gap-2 text-sm text-muted-foreground"
-                    >
-                      <span className="w-1.5 h-1.5 bg-current rounded-full mt-2 flex-shrink-0" />
-                      {reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                {articleContent && (
+                  <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                      Pobrano treść artykułu ({articleContent.length} znaków)
+                    </p>
+                    <p className="text-xs text-slate-500 line-clamp-3">
+                      {articleContent}
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
 
-              <div className="p-4 bg-background rounded-lg">
-                <h4 className="font-medium text-foreground mb-1">Zalecenie:</h4>
-                <p className="text-sm text-muted-foreground">
-                  {result.recommendation}
-                </p>
-              </div>
-            </div>
+              <TabsContent value="content" className="space-y-6 mt-0">
+                <div className="space-y-2">
+                  <Label htmlFor="articleContent">Treść artykułu</Label>
+                  <Textarea
+                    id="articleContent"
+                    placeholder="Wklej tutaj pełną treść artykułu, który chcesz zweryfikować..."
+                    value={articleContent}
+                    onChange={(e) => {
+                      setArticleContent(e.target.value);
+                      setArticleUrl("");
+                      setResult(null);
+                    }}
+                    rows={10}
+                    className="resize-none"
+                  />
+                </div>
+
+                {articleContent && (
+                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                    Liczba znaków: {articleContent.length}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+
+            <Button
+              onClick={analyzeArticle}
+              disabled={
+                isAnalyzing ||
+                isFetching ||
+                (activeTab === "url" && !articleUrl) ||
+                (activeTab === "content" && !articleContent)
+              }
+              className="w-full mt-6"
+              size="lg"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Analizuję artykuł...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Sprawdź wiarygodność
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
-      )}
+
+        {result && (
+          <Card className={`${getResultColor(result.isAI)} border-2`}>
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4 mb-6">
+                {getResultIcon(result.isAI)}
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                    {getResultTitle(result.isAI)}
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {getResultDescription(result.isAI, result.confidence)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    Wyjaśnienie:
+                  </h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    {result.reasoning}
+                  </p>
+
+                  <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    Kluczowe wskaźniki:
+                  </h4>
+                  <ul className="space-y-2">
+                    {result.indicators.map((indicator, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
+                      >
+                        <span className="w-1.5 h-1.5 bg-current rounded-full mt-2 shrink-0" />
+                        {indicator}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-white dark:bg-slate-800 rounded-lg">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-1">
+                    Zalecenie:
+                  </h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {result.isAI
+                      ? "Zalecamy ostrożność i weryfikację informacji w innych, wiarygodnych źródłach przed ich udostępnieniem."
+                      : "Artykuł wydaje się wiarygodny, ale zawsze warto porównać informacje z innymi źródłami."}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
-};
-
-export default ArticleChecker;
+}
