@@ -15,7 +15,7 @@
   --secondary: hsl(45, 80%, 92%);
   --secondary-foreground: hsl(240, 10%, 15%);
   --muted: hsl(248, 40%, 96%);
-  --muted-foreground: hsl(240, 5%, 50%);
+  --muted-foreground: hsl(246°, 6%, 39%);
   --accent: #0056d2;
   --accent-foreground: hsl(0, 0%, 100%);
   --destructive: hsl(0, 84.2%, 60.2%);
@@ -96,9 +96,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   h1,
   h2,
   h3,
