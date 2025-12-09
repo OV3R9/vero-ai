@@ -1,0 +1,4 @@
+project_id = "icozfqmulxcjeavjydre"
+
+[functions.check-ai-image]
+verify_jwt = false
