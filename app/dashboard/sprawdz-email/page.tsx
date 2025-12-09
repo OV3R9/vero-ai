@@ -7,7 +7,7 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Link as LinkIcon,
+  Link2,
   Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 type ResultStatus = "phishing" | "safe" | "suspicious" | null;
 
@@ -59,79 +59,49 @@ const EmailChecker = () => {
     setIsAnalyzing(true);
     setResult(null);
 
-    // Simulate API call - replace with actual AI analysis
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      const SUPABASE_URL =
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "YOUR_SUPABASE_URL";
+      const SUPABASE_ANON_KEY =
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY";
 
-    // Extract URLs from email content for analysis
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const foundUrls = emailContent.match(urlRegex) || [];
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/analyze-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            senderEmail,
+            emailContent,
+          }),
+        }
+      );
 
-    // Mock results - in production this would come from an AI API
-    const mockResults: AnalysisResult[] = [
-      {
-        status: "phishing",
-        confidence: 91,
-        senderAnalysis: {
-          email: senderEmail,
-          trustLevel: "low",
-          reason:
-            "Adres e-mail podszywa się pod znaną firmę, ale używa podejrzanej domeny",
-        },
-        contentWarnings: [
-          "E-mail zawiera pilne wezwanie do działania ('Kliknij natychmiast!')",
-          "Prośba o podanie danych osobowych lub hasła",
-          "Błędy gramatyczne i ortograficzne typowe dla phishingu",
-        ],
-        linkAnalysis: foundUrls.map((url) => ({
-          url,
-          status: "dangerous" as const,
-          reason:
-            "Link prowadzi do strony podszywającej się pod legalną usługę",
-        })),
-        recommendation:
-          "NIE KLIKAJ w żadne linki w tym e-mailu! To prawdopodobnie próba wyłudzenia Twoich danych. Zgłoś ten e-mail jako spam.",
-      },
-      {
-        status: "safe",
-        confidence: 85,
-        senderAnalysis: {
-          email: senderEmail,
-          trustLevel: "high",
-          reason: "Adres e-mail pochodzi z zweryfikowanej domeny",
-        },
-        contentWarnings: [],
-        linkAnalysis: foundUrls.map((url) => ({
-          url,
-          status: "safe" as const,
-          reason: "Link prowadzi do oficjalnej strony nadawcy",
-        })),
-        recommendation:
-          "E-mail wydaje się bezpieczny. Mimo to, jeśli prosi o dane osobowe, zweryfikuj go kontaktując się bezpośrednio z nadawcą.",
-      },
-      {
-        status: "suspicious",
-        confidence: 67,
-        senderAnalysis: {
-          email: senderEmail,
-          trustLevel: "medium",
-          reason: "Nie można jednoznacznie zweryfikować nadawcy",
-        },
-        contentWarnings: [
-          "E-mail zawiera elementy typowe dla reklam lub newsletterów",
-          "Niektóre sformułowania mogą być próbą manipulacji",
-        ],
-        linkAnalysis: foundUrls.map((url) => ({
-          url,
-          status: "suspicious" as const,
-          reason: "Link wymaga dodatkowej weryfikacji przed kliknięciem",
-        })),
-        recommendation:
-          "Zachowaj ostrożność. Przed kliknięciem w linki sprawdź czy rzeczywiście oczekujesz takiej wiadomości od tego nadawcy.",
-      },
-    ];
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
 
-    setResult(mockResults[Math.floor(Math.random() * mockResults.length)]);
-    setIsAnalyzing(false);
+      const data = await response.json();
+      setResult(data);
+
+      if (data.status === "phishing") {
+        toast.error("Uwaga! Wykryto potencjalny phishing!");
+      } else if (data.status === "safe") {
+        toast.success("E-mail wydaje się bezpieczny");
+      } else {
+        toast("Wykryto podejrzane elementy", { icon: "⚠️" });
+      }
+    } catch (error: any) {
+      console.error("Analysis error:", error);
+      toast.error(
+        error.message || "Błąd podczas analizy. Sprawdź konfigurację API."
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getResultIcon = (status: ResultStatus) => {
@@ -196,13 +166,13 @@ const EmailChecker = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto p-4">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Detektor Phishingu
+          Detektor Phishingu AI
         </h1>
         <p className="text-muted-foreground">
-          Sprawdź czy e-mail nie jest próbą wyłudzenia Twoich danych
+          Wykorzystuje Gemini AI do analizy e-maili pod kątem zagrożeń
         </p>
       </div>
 
@@ -241,8 +211,7 @@ const EmailChecker = () => {
               rows={8}
             />
             <p className="text-xs text-muted-foreground">
-              Wskazówka: Wklej całą treść e-maila - nasza AI przeanalizuje
-              również wszystkie linki
+              Gemini AI przeanalizuje treść, nadawcę i wszystkie linki
             </p>
           </div>
 
@@ -255,7 +224,7 @@ const EmailChecker = () => {
             {isAnalyzing ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Analizuję e-mail...
+                Analizuję z Gemini AI...
               </>
             ) : (
               <>
@@ -329,7 +298,7 @@ const EmailChecker = () => {
                     {result.linkAnalysis.map((link, index) => (
                       <div key={index} className="p-3 bg-background rounded-lg">
                         <div className="flex items-center gap-2 mb-1">
-                          <LinkIcon className="w-4 h-4 text-muted-foreground" />
+                          <Link2 className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm text-foreground truncate flex-1">
                             {link.url}
                           </span>
