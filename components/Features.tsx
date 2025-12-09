@@ -54,7 +54,7 @@ const Features = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group select-none bg-card rounded-xl p-6 border border-border hover:shadow-lg transition-shadow duration-300"
+              className="group select-none bg-card rounded-xl p-6 border border-border "
             >
               <div className="flex items-center mb-4 gap-4">
                 <div className="flex items-center justify-center">

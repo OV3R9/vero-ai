@@ -57,23 +57,26 @@ const DashboardSidebar = () => {
 
       <nav className="flex-1 px-4 gap-8">
         <div className="space-y-1">
-          {mainLinks.map((link) => (
-            <Link
-              key={link.to}
-              href={link.to}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all",
-                isActive(link.to, link.exact)
-                  ? "pl-4 border-l-4 border-primary rounded-none text-foreground font-medium  "
-                  : "hover:ml-1.5 hover:font-medium text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <link.icon
-                className={cn("w-5 h-5 scale-125")}
-                strokeWidth={isActive(link.to, link.exact) ? 1.7 : 1.5}
-              />
-              {link.label}
-            </Link>
+          {mainLinks.map((link, index) => (
+            <div key={link.to}>
+              <Link
+                key={link.to}
+                href={link.to}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all",
+                  isActive(link.to, link.exact)
+                    ? "pl-4 border-l-4 border-primary rounded-none text-foreground font-medium  "
+                    : "hover:ml-1.5 hover:font-medium text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <link.icon
+                  className={cn("w-5 h-5 scale-125")}
+                  strokeWidth={isActive(link.to, link.exact) ? 1.7 : 1.5}
+                />
+                {link.label}
+              </Link>
+              {index === 0 ? (<div className="h-px bg-border m-3.5"></div>): null}
+            </div>
           ))}
         </div>
       </nav>
