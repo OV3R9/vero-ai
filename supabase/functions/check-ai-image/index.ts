@@ -16,13 +16,21 @@ function base64ToGenerativePart(image: string) {
 async function callGemini(image: string, apiKey: string) {
   const ai = new GoogleGenAI({ apiKey });
   const prompt = `Jesteś ekspertem w wykrywaniu obrazów wygenerowanych przez AI. Analizujesz obrazy i określasz, czy zostały stworzone przez sztuczną inteligencję czy są prawdziwe.
+
 Odpowiedź w formacie JSON:
 {
+  "summary": "krótkie podsumowanie 50-100 znaków po polsku",
   "isAI": true/false,
   "confidence": 0-100,
-  "reasoning": "szczegółowe wyjaśnienie po polsku",
-  "indicators": ["lista wskaźników po polsku"]
+  "reasoning": ["szczegółowe punkty analizy po polsku", "jeden punkt na element"],
+  "indicators": ["lista wskaźników po polsku"],
+  "details": {
+    "artifacts": ["lista artefaktów AI jeśli wykryto"],
+    "strengths": ["mocne strony obrazu"],
+    "weaknesses": ["słabe strony/wady obrazu"]
+  }
 }
+
 Szukaj następujących wskaźników AI:
 - Nienaturalne tekstury skóry lub włosów
 - Dziwne tła lub rozmyte szczegóły
@@ -33,6 +41,12 @@ Szukaj następujących wskaźników AI:
 - Niespójne oświetlenie
 - Powtarzające się wzory
 - Zbyt gładkie lub idealne powierzchnie
+
+Twórz krótkie podsumowanie (50-100 znaków) w stylu:
+- "Obraz prawdopodobnie wygenerowany przez AI z powodu..."
+- "Wygląda na autentyczny, brak typowych artefaktów AI"
+- "Mieszane cechy, wymaga dalszej analizy"
+
 Przeanalizuj ten obraz i określ, czy został wygenerowany przez AI. Odpowiedz po polsku.`;
 
   const response = await ai.models.generateContent({
@@ -82,10 +96,32 @@ serve(async (req) => {
     let data;
     try {
       data = JSON.parse(result);
+
+      if (!data.summary && data.reasoning) {
+        data.summary =
+          data.reasoning[0]?.substring(0, 100) || "Analiza obrazu wykonana";
+      }
+
+      if (data.reasoning && !Array.isArray(data.reasoning)) {
+        data.reasoning = [data.reasoning];
+      }
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
       console.error("Result:", result);
-      throw new Error("Failed to parse JSON response from Gemini");
+
+      data = {
+        summary: "Analiza AI: Wykryto możliwe artefakty generowania",
+        isAI: null,
+        confidence: 0,
+        reasoning: ["Nie udało się przetworzyć pełnej analizy"],
+        indicators: ["błąd parsowania odpowiedzi"],
+        details: {
+          artifacts: [],
+          strengths: [],
+          weaknesses: ["błąd techniczny analizy"],
+        },
+        _error: "Parse error",
+      };
     }
 
     return new Response(JSON.stringify(data), {
@@ -95,6 +131,18 @@ serve(async (req) => {
     console.error("Error in check-ai-image function:", error);
     return new Response(
       JSON.stringify({
+        summary: "Błąd analizy obrazu",
+        isAI: null,
+        confidence: 0,
+        reasoning: ["Wystąpił błąd podczas przetwarzania"],
+        indicators: ["błąd systemu"],
+        details: {
+          artifacts: [],
+          strengths: [],
+          weaknesses: [
+            error instanceof Error ? error.message : "Nieznany błąd",
+          ],
+        },
         error:
           error instanceof Error
             ? error.message

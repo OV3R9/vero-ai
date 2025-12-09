@@ -40,31 +40,70 @@ Przeanalizuj poniższą treść i oceń, czy jest ona fałszywą informacją (fa
 3. Czy są niespójności logiczne w tekście?
 4. Czy treść próbuje wywołać silne emocje (strach, gniew) bez wystarczającego uzasadnienia?
 
-Odpowiedz wyłącznie w formacie JSON:
+Treść do analizy:
+"${content}"
+
+ODPOWIEDŹ WYŁĄCZNIE W FORMACIE JSON:
 
 {
-  "isAI": true/false (czy to fake news/dezinformacja),
-  "confidence": 0-100 (pewność oceny),
-  "reasoning": "szczegółowe wyjaśnienie po polsku, możesz używać formatu Markdown",
+  "isAI": true/false,
+  "confidence": 0-100,
+  "reasoning": "wyjaśnienie po polsku",
   "indicators": ["lista", "wskaźników", "po polsku"]
-}
+}`;
 
-Treść do analizy:
-"${content}"`;
+  const groundingTool = {
+    googleSearch: {},
+  };
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
+        tools: [groundingTool],
+        temperature: 0.1, // Lower temperature for more consistent JSON
       },
     });
 
-    return response;
+    const result = response.text;
+
+    if (!result || result.trim().length === 0) {
+      throw new Error("Pusta odpowiedź od Gemini API");
+    }
+
+    // Extract JSON from response (in case there's extra text)
+    let jsonStr = result.trim();
+
+    // Try to extract JSON if there's extra text
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+
+    // Parse JSON
+    const parsed = JSON.parse(jsonStr);
+
+    // Validate and sanitize response
+    return {
+      isAI: Boolean(parsed.isAI),
+      confidence: Math.min(100, Math.max(0, Number(parsed.confidence) || 50)),
+      reasoning: String(parsed.reasoning || "Brak szczegółowego wyjaśnienia"),
+      indicators: Array.isArray(parsed.indicators)
+        ? parsed.indicators.filter((item) => item).map(String)
+        : ["Brak szczegółowych wskaźników"],
+    };
   } catch (error) {
     console.error("Gemini API error:", error);
-    throw error;
+
+    // Return fallback response
+    return {
+      isAI: false,
+      confidence: 50,
+      reasoning:
+        "Błąd podczas analizy treści. Nie udało się uzyskać wiarygodnej oceny.",
+      indicators: ["Błąd systemu analizy", "Wymagana ręczna weryfikacja"],
+    };
   }
 }
 
@@ -77,10 +116,19 @@ serve(async (req) => {
     const { content, isUrl = false } = await req.json();
 
     if (!content || typeof content !== "string") {
-      return new Response(JSON.stringify({ error: "Brak treści do analizy" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Brak treści do analizy",
+          isAI: false,
+          confidence: 0,
+          reasoning: "Nie przekazano treści do analizy",
+          indicators: ["Błąd wejścia", "Brak danych"],
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const apiKey = Deno.env.get("GOOGLE_API_KEY");
@@ -88,42 +136,23 @@ serve(async (req) => {
       throw new Error("GOOGLE_API_KEY env variable is not set");
     }
 
-    const response = await callGemini(content, isUrl, apiKey);
-    const result = response.text;
+    const analysisResult = await callGemini(content, isUrl, apiKey);
 
-    if (!result || result.trim().length === 0) {
-      throw new Error("Pusta odpowiedź od Gemini");
+    if (
+      typeof analysisResult.isAI !== "boolean" ||
+      typeof analysisResult.confidence !== "number" ||
+      typeof analysisResult.reasoning !== "string" ||
+      !Array.isArray(analysisResult.indicators)
+    ) {
+      throw new Error("Nieprawidłowy format odpowiedzi z analizy");
     }
 
-    let data;
-    try {
-      data = JSON.parse(result);
+    analysisResult.confidence = Math.max(
+      0,
+      Math.min(100, analysisResult.confidence)
+    );
 
-      if (
-        typeof data.isAI !== "boolean" ||
-        typeof data.confidence !== "number" ||
-        typeof data.reasoning !== "string" ||
-        !Array.isArray(data.indicators)
-      ) {
-        throw new Error("Nieprawidłowy format odpowiedzi");
-      }
-
-      data.confidence = Math.max(0, Math.min(100, data.confidence));
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      console.error("Raw response:", result);
-
-      data = {
-        isAI: false,
-        confidence: 50,
-        reasoning: isUrl
-          ? "Nie udało się przeprowadzić pełnej analizy URL. Wynik może być niepewny."
-          : "Nie udało się przeprowadzić pełnej analizy treści. Wynik może być niepewny.",
-        indicators: ["Błąd podczas analizy", "Wymagana ręczna weryfikacja"],
-      };
-    }
-
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

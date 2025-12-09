@@ -1,8 +1,13 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useRef, useEffect, DragEvent } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type DragEvent,
+} from "react";
 import {
   Upload,
   ImageIcon,
@@ -26,12 +31,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import toast from "react-hot-toast";
 import supabase from "@/lib/supabase/client";
 
-type ResultStatus = "ai" | "real" | "uncertain" | null;
+// Define specific types for better type safety
+type ResultStatus = "ai" | "real" | "uncertain";
 
 interface AnalysisResult {
-  status: ResultStatus;
+  isAI: boolean;
   confidence: number;
-  explanation: string;
+  summary: string;
+  reasoning: string[];
   indicators?: string[];
 }
 
@@ -42,35 +49,42 @@ const ImageChecker = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [showMore, setShowMore] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = (file: File) => {
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Proszę wybrać plik graficzny");
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("Maksymalny rozmiar pliku to 10MB");
-        return;
-      }
+  const processFile = useCallback((file: File) => {
+    if (!file) return;
 
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setImageUrl("");
-      setResult(null);
+    if (!file.type.startsWith("image/")) {
+      toast.error("Proszę wybrać plik graficzny (JPG, PNG, WEBP).");
+      return;
     }
-  };
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Maksymalny rozmiar pliku to 10MB");
+      return;
+    }
+
+    setSelectedFile(file);
+    setResult(null);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.onerror = () => {
+      toast.error("Błąd odczytu pliku.");
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       processFile(file);
     }
+    event.target.value = "";
   };
 
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
@@ -93,7 +107,7 @@ const ImageChecker = () => {
   };
 
   useEffect(() => {
-    const windowPasteHandler = (event: globalThis.ClipboardEvent) => {
+    const windowPasteHandler = (event: ClipboardEvent) => {
       if (
         event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement
@@ -105,16 +119,15 @@ const ImageChecker = () => {
       if (file && file.type.startsWith("image/")) {
         event.preventDefault();
         processFile(file);
-        toast.success("Zdjęcie wklejone!");
+        toast.success("Zdjęcie wklejone ze schowka!");
       }
     };
 
     window.addEventListener("paste", windowPasteHandler);
-
     return () => {
       window.removeEventListener("paste", windowPasteHandler);
     };
-  }, []);
+  }, [processFile]);
 
   const handleUrlLoad = async () => {
     if (!imageUrl) {
@@ -141,21 +154,22 @@ const ImageChecker = () => {
       const blob = await response.blob();
 
       if (!blob.type.startsWith("image/")) {
-        throw new Error("Podany URL nie prowadzi do zdjęcia");
+        throw new Error("Podany URL nie prowadzi do poprawnego obrazu.");
       }
 
       const fileName =
         imageUrl.substring(imageUrl.lastIndexOf("/") + 1) ||
         "image-from-url.png";
+
       const file = new File([blob], fileName, { type: blob.type });
 
       processFile(file);
-      toast.success("Zdjęcie załadowane z URL!", { id: toastId });
-    } catch (error: any) {
+      toast.success("Zdjęcie załadowane!", { id: toastId });
+    } catch (error: unknown) {
       console.error("URL load error:", error);
-      toast.error(error.message || "Nie można załadować zdjęcia z URL", {
-        id: toastId,
-      });
+      const errorMessage =
+        error instanceof Error ? error.message : "Nie można załadować zdjęcia";
+      toast.error(errorMessage, { id: toastId });
     }
   };
 
@@ -164,6 +178,9 @@ const ImageChecker = () => {
     setSelectedFile(null);
     setImageUrl("");
     setResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const analyzeImage = async () => {
@@ -187,25 +204,36 @@ const ImageChecker = () => {
 
       if (error) throw error;
 
-      let status: ResultStatus = "uncertain";
-      if (data.confidence >= 70) {
-        status = data.isAI ? "ai" : "real";
+      if (!data) {
+        throw new Error("Brak odpowiedzi z serwera.");
       }
 
       setResult({
-        status,
+        isAI: data.isAI,
         confidence: data.confidence,
-        explanation: data.reasoning,
-        indicators: data.indicators,
+        summary: data.summary,
+        reasoning: data.reasoning || [],
+        indicators: data.indicators || [],
       });
 
       toast.success("Analiza zakończona!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Analysis error:", error);
-      toast.error(error.message || "Błąd podczas analizy zdjęcia");
+      const msg =
+        error instanceof Error ? error.message : "Błąd podczas analizy zdjęcia";
+      toast.error(msg);
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const getStatus = (isAI: boolean, confidence: number): ResultStatus => {
+    if (isAI) {
+      if (confidence > 75) return "ai";
+      if (confidence >= 50) return "uncertain";
+      return "real";
+    }
+    return "real";
   };
 
   const getResultIcon = (status: ResultStatus) => {
@@ -248,8 +276,8 @@ const ImageChecker = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-8">
+    <div className="max-w-3xl mx-auto p-4">
+      <div className="mb-8 text-center sm:text-left">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Wykrywacz AI Zdjęć
         </h1>
@@ -267,7 +295,7 @@ const ImageChecker = () => {
         ref={fileInputRef}
       />
 
-      {!previewUrl && (
+      {!previewUrl ? (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Prześlij zdjęcie</CardTitle>
@@ -290,7 +318,8 @@ const ImageChecker = () => {
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`flex flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed p-10 transition-colors ${
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed p-10 transition-colors cursor-pointer hover:bg-muted/50 ${
                     isDragging
                       ? "border-primary bg-primary/10"
                       : "border-border"
@@ -305,7 +334,10 @@ const ImageChecker = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
                     >
                       Wybierz Zdjęcie
                     </Button>
@@ -334,7 +366,7 @@ const ImageChecker = () => {
                     />
                     <Button
                       onClick={handleUrlLoad}
-                      disabled={isAnalyzing}
+                      disabled={isAnalyzing || !imageUrl}
                       className="whitespace-nowrap"
                     >
                       <Download className="mr-0 h-4 w-4 sm:mr-2" />
@@ -346,31 +378,29 @@ const ImageChecker = () => {
             </Tabs>
           </CardContent>
         </Card>
-      )}
-
-      {previewUrl && (
-        <Card className="mb-6">
+      ) : (
+        <Card className="mb-6 animate-in fade-in zoom-in-95 duration-300">
           <CardContent className="pt-6">
             <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
               className={`w-full max-w-md mx-auto aspect-square overflow-hidden rounded-lg border relative transition-colors ${
                 isDragging
                   ? "border-primary border-2 bg-primary/10"
                   : "border-border"
               }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
             >
               <img
                 src={previewUrl}
                 alt="Podgląd"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain bg-black/5"
               />
 
               <div className="absolute top-2 right-2 flex gap-2">
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => {
                     fileInputRef.current?.click();
                   }}
@@ -387,7 +417,7 @@ const ImageChecker = () => {
                   <div className="text-center">
                     <Upload className="h-12 w-12 mx-auto mb-2 text-primary" />
                     <p className="text-sm font-medium text-primary">
-                      Upuść zdjęcie tutaj
+                      Upuść nowe zdjęcie tutaj
                     </p>
                   </div>
                 </div>
@@ -396,7 +426,7 @@ const ImageChecker = () => {
 
             <Button
               onClick={analyzeImage}
-              disabled={isAnalyzing || !previewUrl}
+              disabled={isAnalyzing}
               className="w-full mt-4"
               size="lg"
             >
@@ -417,35 +447,89 @@ const ImageChecker = () => {
       )}
 
       {result && (
-        <Card className={`${getResultColor(result.status)} border-2`}>
+        <Card
+          className={`${getResultColor(
+            getStatus(result.isAI, result.confidence)
+          )} border-2 animate-in slide-in-from-bottom-5 duration-500`}
+        >
           <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              {getResultIcon(result.status)}
+            <div className="flex items-start gap-4 mb-6">
+              {getResultIcon(getStatus(result.isAI, result.confidence))}
               <div className="flex-1">
                 <h3 className="text-xl font-semibold text-foreground mb-1">
-                  {getResultTitle(result.status)}
+                  {getResultTitle(getStatus(result.isAI, result.confidence))}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Pewność analizy: {result.confidence}%
+                  Pewność analizy:{" "}
+                  <span className="font-bold">{result.confidence}%</span>
                 </p>
-                <p className="text-foreground mb-4">{result.explanation}</p>
+                <p className="text-foreground">{result.summary}</p>
+              </div>
+            </div>
 
-                {result.indicators && result.indicators.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">
-                      Wykryte wskaźniki:
+            <Button
+              onClick={() => setShowMore(!showMore)}
+              className="w-full my-4"
+              size="sm"
+              variant="outline"
+            >
+              {showMore ? "Zwiń" : "Pokaż szczegóły analizy"}
+            </Button>
+
+            {showMore && (
+              <Tabs defaultValue="reasoning" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 ">
+                  <TabsTrigger value="reasoning">Szczegóły analizy</TabsTrigger>
+                  <TabsTrigger value="indicators">Wskaźniki</TabsTrigger>
+                </TabsList>
+                <TabsContent
+                  value="reasoning"
+                  className="p-4 border-border border rounded-md bg-background"
+                >
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">
+                      Proces analizy:
                     </h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {result.indicators.map((indicator, idx) => (
-                        <li key={idx} className="text-sm text-muted-foreground">
-                          {indicator}
+                    <ul className="list-disc list-inside space-y-2">
+                      {result.reasoning.map((reason, idx) => (
+                        <li
+                          key={`reason-${idx}`}
+                          className="text-sm text-muted-foreground"
+                        >
+                          {reason}
                         </li>
                       ))}
                     </ul>
                   </div>
-                )}
-              </div>
-            </div>
+                </TabsContent>
+                <TabsContent
+                  value="indicators"
+                  className="p-4 border-border border rounded-md bg-background"
+                >
+                  {result.indicators && result.indicators.length > 0 ? (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold text-foreground mb-3">
+                        Wykryte wskaźniki:
+                      </h4>
+                      <ul className="list-disc list-inside space-y-2">
+                        {result.indicators.map((indicator, idx) => (
+                          <li
+                            key={`ind-${idx}`}
+                            className="text-sm text-muted-foreground"
+                          >
+                            {indicator}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Brak dodatkowych wskaźników do wyświetlenia.
+                    </p>
+                  )}
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       )}
