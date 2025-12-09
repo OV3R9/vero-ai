@@ -1,32 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GoogleGenAI } from "npm:@google/genai";
-
 import { corsHeaders } from "../_shared/cors.ts";
 
-function base64ToGenerativePart(base64Data: string) {
-  const base64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
-
+function base64ToGenerativePart(image: string) {
+  const match = image.match(/^data:(image\/.+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Nieprawidłowy format obrazu base64.");
+  }
   return {
-    inlineData: {
-      data: base64,
-      mimeType: "image/jpeg",
-    },
+    mimeType: match[1],
+    data: match[2],
   };
 }
 
 async function callGemini(image: string, apiKey: string) {
   const ai = new GoogleGenAI({ apiKey });
-
   const prompt = `Jesteś ekspertem w wykrywaniu obrazów wygenerowanych przez AI. Analizujesz obrazy i określasz, czy zostały stworzone przez sztuczną inteligencję czy są prawdziwe.
-
-Odpowiedz w formacie JSON:
+Odpowiedź w formacie JSON:
 {
   "isAI": true/false,
   "confidence": 0-100,
   "reasoning": "szczegółowe wyjaśnienie po polsku",
   "indicators": ["lista wskaźników po polsku"]
 }
-
 Szukaj następujących wskaźników AI:
 - Nienaturalne tekstury skóry lub włosów
 - Dziwne tła lub rozmyte szczegóły
@@ -37,23 +33,24 @@ Szukaj następujących wskaźników AI:
 - Niespójne oświetlenie
 - Powtarzające się wzory
 - Zbyt gładkie lub idealne powierzchnie
-
 Przeanalizuj ten obraz i określ, czy został wygenerowany przez AI. Odpowiedz po polsku.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-2.5-flash",
     contents: [
       {
-        parts: [{ text: prompt }, base64ToGenerativePart(image)],
+        parts: [
+          { text: prompt },
+          { inlineData: base64ToGenerativePart(image) },
+        ],
       },
     ],
-    generationConfig: {
+    config: {
       responseMimeType: "application/json",
     },
   });
 
-  const text = response.response.text();
-  return JSON.parse(text);
+  return response;
 }
 
 serve(async (req) => {
@@ -63,7 +60,6 @@ serve(async (req) => {
 
   try {
     const { imageBase64 } = await req.json();
-
     if (!imageBase64) {
       return new Response(JSON.stringify({ error: "Brak obrazu do analizy" }), {
         status: 400,
@@ -76,9 +72,23 @@ serve(async (req) => {
       throw new Error("GOOGLE_API_KEY is not configured");
     }
 
-    const result = await callGemini(imageBase64, GOOGLE_API_KEY);
+    const response = await callGemini(imageBase64, GOOGLE_API_KEY);
+    const result = response.text;
 
-    return new Response(JSON.stringify(result), {
+    if (!result || result.trim().length === 0) {
+      throw new Error("Empty response from Gemini");
+    }
+
+    let data;
+    try {
+      data = JSON.parse(result);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Result:", result);
+      throw new Error("Failed to parse JSON response from Gemini");
+    }
+
+    return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
