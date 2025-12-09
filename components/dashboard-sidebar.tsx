@@ -10,6 +10,7 @@ import {
   Home,
   HelpCircle,
   Settings,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "./Logo";
@@ -30,6 +31,11 @@ const DashboardSidebar = () => {
       label: "Weryfikator Wiadomości",
     },
     { to: "/dashboard/sprawdz-email", icon: Mail, label: "Detektor Phishingu" },
+    {
+      to: "/dashboard/generuj-haslo",
+      icon: KeyRound,
+      label: "Generator Haseł",
+    },
   ];
 
   const bottomLinks = [{ to: "#", icon: HelpCircle, label: "FAQ" }];
