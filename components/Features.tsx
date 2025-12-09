@@ -56,12 +56,14 @@ const Features = () => {
               key={index}
               className="bg-card rounded-xl p-6 border border-border hover:shadow-lg transition-shadow duration-300"
             >
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                <feature.icon className="w-6 h-6 text-primary" />
+              <div className="h-12 flex items-center mb-4 gap-4">
+                <div className="h-12 flex items-center justify-center">
+                  <feature.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground">
+                  {feature.title}
+                </h3>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                {feature.title}
-              </h3>
               <p className="text-muted-foreground">{feature.description}</p>
             </div>
           ))}
