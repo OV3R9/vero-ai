@@ -1,31 +1,44 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Shield, ImageIcon, Newspaper, Mail, Home, HelpCircle, Settings } from "lucide-react"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  Shield,
+  ImageIcon,
+  Newspaper,
+  Mail,
+  Home,
+  HelpCircle,
+  Settings,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const DashboardSidebar = () => {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   const mainLinks = [
     { to: "/dashboard", icon: Home, label: "Strona główna", exact: true },
-    { to: "/dashboard/sprawdz-zdjecie", icon: ImageIcon, label: "Wykrywacz AI Zdjęć" },
-    { to: "/dashboard/sprawdz-artykul", icon: Newspaper, label: "Weryfikator Wiadomości" },
+    {
+      to: "/dashboard/sprawdz-zdjecie",
+      icon: ImageIcon,
+      label: "Wykrywacz AI Zdjęć",
+    },
+    {
+      to: "/dashboard/sprawdz-artykul",
+      icon: Newspaper,
+      label: "Weryfikator Wiadomości",
+    },
     { to: "/dashboard/sprawdz-email", icon: Mail, label: "Detektor Phishingu" },
-  ]
+  ];
 
-  const bottomLinks = [
-    { to: "#", icon: HelpCircle, label: "FAQ" },
-    { to: "#", icon: Settings, label: "Ustawienia" },
-  ]
+  const bottomLinks = [{ to: "#", icon: HelpCircle, label: "FAQ" }];
 
   const isActive = (path: string, exact = false) => {
     if (exact) {
-      return pathname === path
+      return pathname === path;
     }
-    return pathname.startsWith(path)
-  }
+    return pathname.startsWith(path);
+  };
 
   return (
     <aside className="w-64 bg-card border-r border-border min-h-screen flex flex-col">
@@ -48,7 +61,7 @@ const DashboardSidebar = () => {
                 "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
                 isActive(link.to, link.exact)
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
               <link.icon className="w-5 h-5" />
@@ -73,7 +86,7 @@ const DashboardSidebar = () => {
         </div>
       </div>
     </aside>
-  )
-}
+  );
+};
 
-export default DashboardSidebar
+export default DashboardSidebar;
