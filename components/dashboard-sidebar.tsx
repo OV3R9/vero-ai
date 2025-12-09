@@ -12,6 +12,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Logo from "./Logo";
 
 const DashboardSidebar = () => {
   const pathname = usePathname();
@@ -43,11 +44,8 @@ const DashboardSidebar = () => {
   return (
     <aside className="w-72 bg-card border-r border-border min-h-screen flex flex-col">
       <div className="p-6">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Shield className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold text-foreground">VeroAI</span>
+        <Link href="/">
+          <Logo className="text-foreground" />
         </Link>
       </div>
 
@@ -58,10 +56,10 @@ const DashboardSidebar = () => {
               key={link.to}
               href={link.to}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors",
+                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all",
                 isActive(link.to, link.exact)
                   ? "pl-4 border-l-4 border-primary rounded-none text-foreground font-medium  "
-                  : "hover:ml-1.5 hover:font-medium text-muted-foreground hover:text-foreground "
+                  : "hover:ml-1.5 hover:font-medium text-muted-foreground hover:text-foreground"
               )}
             >
               <link.icon

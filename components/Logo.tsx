@@ -1,12 +1,15 @@
 import Image from "next/image";
 
 import logo from "@/assets/icon.png";
+import { cn } from "@/lib/utils";
 
-export default function Logo() {
+export default function Logo({ className }: { className?: string }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className={`flex items-center gap-2`}>
       <Image src={logo} alt="VeroAI" width={32} height={32} />
-      <span className="text-xl font-bold text-primary">VeroAI</span>
+      <span className={cn("text-xl font-bold text-primary", className)}>
+        VeroAI
+      </span>
     </div>
   );
 }
