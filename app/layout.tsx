@@ -6,7 +6,7 @@ import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { Toaster } from "react-hot-toast";
 import AccessibilityClient from "@/components/AccesabilityClient";
-import Sigma from "@/components/sigma";
+import { AccessibilityButton } from "@/components/AccessabilityWidget";
 
 const _Inter = Inter({ subsets: ["latin"] });
 
@@ -41,13 +41,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <AccessibilityClient />
         <Toaster position="top-center" reverseOrder={false} />
         <QueryProvider>
           {children}
           <Analytics />
         </QueryProvider>
-        <Sigma />
+        <AccessibilityButton />
       </body>
     </html>
   );
