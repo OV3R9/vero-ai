@@ -23,7 +23,7 @@ const DashboardSidebar = () => {
     {
       to: "/dashboard/sprawdz-zdjecie",
       icon: ImageIcon,
-      label: "Wykrywacz AI Zdjęć",
+      label: "Wykrywacz Zdjęć AI",
     },
     {
       to: "/dashboard/sprawdz-artykul",
