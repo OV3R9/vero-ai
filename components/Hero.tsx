@@ -26,23 +26,6 @@ const Hero = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-scale-in relative">
-          {/* Animowana strzałka wskazująca na karty */}
-          {/* <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 hidden md:block">
-            <div className="relative w-8 h-12">
-              <svg
-                className="w-full h-full text-primary animate-bounce"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-              </svg>
-            </div>
-          </div> */}
-
           <Link href="/dashboard/sprawdz-zdjecie" className="group">
             <div className="bg-card rounded-2xl p-8 shadow-lg border border-border hover:border-primary/50 hover:shadow-xl transition-all duration-300">
               <div className="flex items-center mb-4 gap-4">
