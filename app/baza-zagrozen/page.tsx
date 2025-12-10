@@ -10,9 +10,9 @@ import {
   Calendar,
   Shield,
   TrendingUp,
-  ChevronDown,
   ChevronUp,
   LinkIcon,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +32,7 @@ import {
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 interface SuspiciousEmail {
   id: string;
@@ -64,6 +65,7 @@ export default function DatabaseRecords() {
     new Set()
   );
 
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const {
@@ -175,6 +177,13 @@ export default function DatabaseRecords() {
   return (
     <div className="max-w-6xl mx-auto py-10 px-8 xl:px-0">
       <div className="mb-8">
+        <button
+          onClick={() => router.back()}
+          className="text-foreground cursor-pointer flex items-center gap-1 mb-6"
+        >
+          <ArrowLeft />
+          <span className="ml-2 underline">Powrót</span>
+        </button>
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Baza wykrytych zagrożeń
         </h1>

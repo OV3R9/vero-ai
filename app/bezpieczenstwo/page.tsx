@@ -28,11 +28,11 @@ interface Article {
 const Articles = () => {
   const articles: Article[] = [
     {
-      bg: "bg-orange-600 text-white",
+      bg: "bg-orange-600 text-white hover:bg-orange-700",
       id: "phishing",
       title: "Phishing - Oszustwa przez E-mail",
       description: "Jak rozpoznać podejrzane e-maile i chronić swoje dane",
-      icon: <Mail className="w-8 h-8 text-orange-500" />,
+      icon: <Mail className="w-8 h-8 text-orange-500 " />,
       color: "from-orange-50 to-orange-100",
       content: [
         "Phishing to rodzaj oszustwa, gdzie oszuści wysyłają fałszywe e-maile, które wyglądają jak od banku, poczty lub popularnej strony.",
@@ -51,7 +51,7 @@ const Articles = () => {
       },
     },
     {
-      bg: "text-white",
+      bg: "text-white ",
       id: "ai-images",
       title: "Zdjęcia Generowane przez AI",
       description: "Jak odkryć sztuczne zdjęcia i nieprawdziwe zdjęcia",
@@ -75,7 +75,7 @@ const Articles = () => {
       },
     },
     {
-      bg: "bg-red-600 text-white",
+      bg: "bg-red-600 text-white hover:bg-red-700",
       id: "deepfakes",
       title: "Deepfakes i Fałszywe Wideo",
       description: "Oszustwa przy użyciu fałszywych filmów i głosów",
@@ -98,7 +98,7 @@ const Articles = () => {
       },
     },
     {
-      bg: "bg-green-600 text-white",
+      bg: "bg-green-600 text-white hover:bg-green-700",
       id: "passwords",
       title: "Silne Hasła - Klucz do Bezpieczeństwa",
       description: "Jak tworzyć hasła, które będą trudne do złamania",
@@ -131,7 +131,7 @@ const Articles = () => {
       },
     },
     {
-      bg: "bg-purple-500 text-white",
+      bg: "bg-purple-500 text-white hover:bg-purple-600",
       id: "scams",
       title: "Oszustwa Online - Jak Się Chronić",
       description: "Najczęstsze oszustwa i jak ich uniknąć",

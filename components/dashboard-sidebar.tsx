@@ -3,16 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Shield,
   ImageIcon,
   Newspaper,
   Mail,
   Home,
   HelpCircle,
-  Settings,
   KeyRound,
   Menu,
   X,
+  ShieldX,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Logo from "./Logo";
@@ -42,7 +41,10 @@ const DashboardSidebar = () => {
     },
   ];
 
-  const bottomLinks = [{ to: "/faq", icon: HelpCircle, label: "FAQ" }];
+  const bottomLinks = [
+    { to: "/baza-zagrozen", icon: ShieldX, label: "Baza zagrożeń" },
+    { to: "/faq", icon: HelpCircle, label: "FAQ" },
+  ];
 
   const isActive = (path: string, exact = false) => {
     if (exact) return pathname === path;

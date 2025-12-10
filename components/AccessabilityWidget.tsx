@@ -97,7 +97,7 @@ export function AccessibilityButton() {
         onClick={() => setOpen(true)}
         size="icon"
         variant="outline"
-        className="fixed bottom-4 bg-primary right-4 z-50 size-14 border-0 rounded-full shadow-lg"
+        className="fixed bottom-4 bg-blue-800 right-4 z-50 size-14 border-0 rounded-full shadow-lg"
         aria-label="Otwórz ustawienia dostępności"
       >
         <AccessibilityIcon className="size-6 text-white" />

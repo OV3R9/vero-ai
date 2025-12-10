@@ -26,7 +26,7 @@ const Footer = () => {
                   href="/dashboard/sprawdz-zdjecie"
                   className="hover:text-background transition-colors"
                 >
-                  Wykrywacz AI Zdjęć
+                  Wykrywacz Zdjęć AI
                 </Link>
               </li>
               <li>

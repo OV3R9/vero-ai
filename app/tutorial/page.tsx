@@ -91,7 +91,7 @@ const Tutorial = () => {
   const sections: TutorialSection[] = [
     {
       id: "image-detector",
-      title: "Wykrywacz AI Zdjęć",
+      title: "Wykrywacz Zdjęć AI",
       description:
         "Sprawdź czy zdjęcie zostało wygenerowane przez sztuczną inteligencję",
       icon: "🖼️",
@@ -99,7 +99,7 @@ const Tutorial = () => {
       steps: [
         {
           title: "Krok 1: Wejdź do narzędzia",
-          description: "Otwórz Wykrywacz AI Zdjęć z pulpitu nawigacyjnego.",
+          description: "Otwórz Wykrywacz Zdjęć AI z pulpitu nawigacyjnego.",
           content: (
             <div className="space-y-4">
               <div className="relative w-full bg-muted rounded-lg overflow-hidden border-2 border-border">
@@ -113,7 +113,7 @@ const Tutorial = () => {
               </div>
               <p className="text-foreground leading-relaxed">
                 Na pulpicie nawigacyjnym znajdziesz trzy główne narzędzia.
-                Kliknij na kartę "Wykrywacz AI Zdjęć" aby otworzyć narzędzie do
+                Kliknij na kartę "Wykrywacz Zdjęć AI" aby otworzyć narzędzie do
                 sprawdzania zdjęć.
               </p>
             </div>
@@ -514,7 +514,7 @@ const Tutorial = () => {
   ];
 
   const tableOfContents = [
-    { id: "image-detector", label: "Wykrywacz AI Zdjęć" },
+    { id: "image-detector", label: "Wykrywacz Zdjęć AI" },
     { id: "article-checker", label: "Weryfikator Wiadomości" },
     { id: "phishing-detector", label: "Detektor Phishingu" },
   ];

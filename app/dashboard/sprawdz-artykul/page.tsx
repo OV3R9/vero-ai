@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 import {
-  Mail,
-  Link2,
+  Link,
   Loader2,
-  AlertTriangle,
+  CheckCircle,
+  XCircle,
   ExternalLink,
-  Calendar,
-  Shield,
-  TrendingUp,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -21,447 +18,280 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import supabase from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
-interface SuspiciousEmail {
-  id: string;
-  sender_email: string;
-  email_content: string;
-  confidence: number;
-  status: string;
-  sender_analysis: any;
-  link_analysis: any[];
-  created_at: string;
-}
-
-interface FakeNewsArticle {
-  id: string;
-  article_url: string;
+type AnalysisResult = {
+  isAI: boolean;
   confidence: number;
   reasoning: string;
-  created_at: string;
-}
+  indicators: string[];
+};
 
-interface DatabaseData {
-  emails: SuspiciousEmail[];
-  articles: FakeNewsArticle[];
-}
+export default function ArticleChecker() {
+  const [articleUrl, setArticleUrl] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [showReasoning, setShowReasoning] = useState(false);
 
-export default function DatabaseRecords() {
-  const [activeTab, setActiveTab] = useState<"emails" | "articles">("emails");
-  const [expandedEmails, setExpandedEmails] = useState<Set<string>>(new Set());
-  const [expandedArticles, setExpandedArticles] = useState<Set<string>>(
-    new Set()
-  );
-  const queryClient = useQueryClient();
-
-  // React Query for fetching data
-  const {
-    data: databaseData,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<DatabaseData>({
-    queryKey: ["database-records"],
-    queryFn: fetchDatabaseData,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (cache time)
-  });
-
-  const suspiciousEmails = databaseData?.emails || [];
-  const fakeNewsArticles = databaseData?.articles || [];
-
-  async function fetchDatabaseData(): Promise<DatabaseData> {
-    const [emailsResponse, articlesResponse] = await Promise.all([
-      supabase
-        .from("suspicious_emails")
-        .select("*")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("fake_news_articles")
-        .select("*")
-        .order("created_at", { ascending: false }),
-    ]);
-
-    if (emailsResponse.error) throw emailsResponse.error;
-    if (articlesResponse.error) throw articlesResponse.error;
-
-    return {
-      emails: emailsResponse.data || [],
-      articles: articlesResponse.data || [],
-    };
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "phishing":
-        return "text-red-600 bg-red-500/10";
-      case "suspicious":
-        return "text-yellow-600 bg-yellow-500/10";
-      default:
-        return "text-slate-600 bg-slate-500/10";
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "phishing":
-        return "Phishing";
-      case "suspicious":
-        return "Podejrzany";
-      default:
-        return status;
+  const saveFakeNews = async (analysisResult: AnalysisResult) => {
+    try {
+      const { error } = await supabase.from("fake_news_articles").insert({
+        article_url: articleUrl,
+        confidence: analysisResult.confidence,
+        reasoning: analysisResult.reasoning,
+      });
+
+      if (error) {
+        return false;
+      }
+
+      if (analysisResult.isAI && analysisResult.confidence >= 0.5) {
+        toast.success(
+          "Artykuł został oznaczony jako fałszywy i zapisany w bazie danych."
+        );
+      }
+
+      return true;
+    } catch (error) {
+      return false;
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("pl-PL", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const analyzeArticle = async () => {
+    if (!articleUrl) {
+      alert("Wklej link do artykułu, który chcesz sprawdzić.");
+      return;
+    }
 
-  const toggleEmailExpansion = (id: string) => {
-    setExpandedEmails((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
+    if (!isValidUrl(articleUrl)) {
+      alert("Upewnij się, że wklejony link jest poprawny.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setResult(null);
+    setShowReasoning(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "check-fake-news",
+        {
+          body: {
+            content: articleUrl,
+            isUrl: true,
+          },
+        }
+      );
+
+      if (error) throw new Error(error.message);
+      setResult(data);
+
+      if (data.isAI && data.confidence >= 0.5) {
+        await saveFakeNews(data);
       }
-      return newSet;
-    });
+    } catch (error) {
+      console.error("Error analyzing article:", error);
+      alert("Wystąpił błąd podczas analizy. Spróbuj ponownie.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const toggleArticleExpansion = (id: string) => {
-    setExpandedArticles((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
+  const getResultIcon = (isAI: boolean) =>
+    isAI ? (
+      <XCircle className="w-8 h-8 text-red-600" />
+    ) : (
+      <CheckCircle className="w-8 h-8 text-green-600" />
+    );
 
-  const getEmailSummary = (email: SuspiciousEmail) => {
-    const lines = email.email_content.split("\n");
-    const firstLine = lines[0] || "";
-    const maxLength = 100;
-    return firstLine.length > maxLength
-      ? `${firstLine.substring(0, maxLength)}...`
-      : firstLine;
-  };
+  const getResultTitle = (isAI: boolean) =>
+    isAI
+      ? "Prawdopodobnie fałszywa informacja"
+      : "Prawdopodobnie wiarygodny artykuł";
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["database-records"] });
-  };
+  const getResultColor = (isAI: boolean) =>
+    isAI
+      ? "border-red-500/50 bg-red-500/5"
+      : "border-green-500/50 bg-green-500/5";
+
+  const getResultDescription = (isAI: boolean, confidence: number) =>
+    isAI
+      ? `System wykrył cechy fałszywej informacji (pewność: ${confidence}%)`
+      : `Artykuł wydaje się wiarygodny (pewność: ${confidence}%)`;
 
   return (
-    <div className="max-w-6xl mx-auto py-8">
+    <div className="max-w-3xl mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Baza wykrytych zagrożeń
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+          Weryfikator Newsów
         </h1>
-        <p className="text-muted-foreground">
-          Przegląd wszystkich wykrytych phishingowych e-maili i fałszywych
-          wiadomości
+        <p className="text-slate-600 dark:text-slate-400">
+          Sprawdź czy artykuł zawiera prawdziwe informacje czy to fake news.
         </p>
       </div>
 
-      <div className="flex gap-2 mb-6">
-        <Button
-          variant={activeTab === "emails" ? "default" : "outline"}
-          onClick={() => setActiveTab("emails")}
-          className="flex-1"
-        >
-          <Mail className="w-4 h-4 mr-2" />
-          Podejrzane e-maile ({suspiciousEmails.length})
-        </Button>
-        <Button
-          variant={activeTab === "articles" ? "default" : "outline"}
-          onClick={() => setActiveTab("articles")}
-          className="flex-1"
-        >
-          <Link2 className="w-4 h-4 mr-2" />
-          Fake news ({fakeNewsArticles.length})
-        </Button>
-      </div>
+      {!result && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Dodaj artykuł do weryfikacji</CardTitle>
+            <CardDescription>Wklej link artykułu</CardDescription>
+          </CardHeader>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : error ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-yellow-600" />
-            <p className="text-muted-foreground mb-4">
-              Błąd podczas ładowania danych
-            </p>
-            <Button onClick={handleRefresh} variant="outline">
-              Spróbuj ponownie
-            </Button>
+          <CardContent>
+            <div className="space-y-4">
+              <Label htmlFor="articleUrl">Link do artykułu</Label>
+              <Input
+                id="articleUrl"
+                type="url"
+                placeholder="https://example.com/artykul"
+                value={articleUrl}
+                onChange={(e) => {
+                  setArticleUrl(e.target.value);
+                  setResult(null);
+                }}
+              />
+
+              {articleUrl && isValidUrl(articleUrl) && (
+                <a
+                  href={articleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg"
+                >
+                  <ExternalLink className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                  <span className="text-sm underline decoration-primary truncate">
+                    {new URL(articleUrl).hostname}
+                  </span>
+                </a>
+              )}
+
+              <Button
+                onClick={analyzeArticle}
+                disabled={isAnalyzing || !articleUrl}
+                className="w-full mt-4"
+                size="lg"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Analizuję artykuł...
+                  </>
+                ) : (
+                  <>Sprawdź wiarygodność</>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          {activeTab === "emails" && (
-            <div className="space-y-4">
-              {suspiciousEmails.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Shield className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      Brak wykrytych podejrzanych e-maili
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                suspiciousEmails.map((email) => {
-                  const isExpanded = expandedEmails.has(email.id);
-                  return (
-                    <Card
-                      key={email.id}
-                      className="hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader
-                        className="cursor-pointer"
-                        onClick={() => toggleEmailExpansion(email.id)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <Mail className="w-4 h-4 text-muted-foreground" />
-                              <CardTitle className="text-lg break-all">
-                                {email.sender_email}
-                              </CardTitle>
-                              <span
-                                className={cn(
-                                  "text-xs px-2 py-1 rounded-full font-medium",
-                                  getStatusColor(email.status)
-                                )}
-                              >
-                                {getStatusLabel(email.status)}
-                              </span>
-                            </div>
-                            <CardDescription className="flex flex-wrap items-center gap-4">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(email.created_at)}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3" />
-                                Pewność: {email.confidence}%
-                              </span>
-                            </CardDescription>
-                            <div className="mt-3">
-                              <p className="text-sm text-muted-foreground">
-                                {isExpanded ? (
-                                  <span className="flex items-center gap-1">
-                                    <ChevronUp className="w-4 h-4" />
-                                    Kliknij aby zwinąć
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1">
-                                    <ChevronDown className="w-4 h-4" />
-                                    Kliknij aby rozwinąć
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          {email.status === "phishing" && (
-                            <AlertTriangle className="w-6 h-6 text-red-600 shrink-0" />
-                          )}
-                          {email.status === "suspicious" && (
-                            <AlertTriangle className="w-6 h-6 text-yellow-600 shrink-0" />
-                          )}
-                        </div>
-                      </CardHeader>
-                      {isExpanded && (
-                        <CardContent className="space-y-4 border-t pt-4">
-                          <div>
-                            <h4 className="text-sm font-medium text-foreground mb-2">
-                              Treść e-maila:
-                            </h4>
-                            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg whitespace-pre-wrap">
-                              {email.email_content}
-                            </div>
-                          </div>
-
-                          {email.sender_analysis && (
-                            <div className="p-3 bg-background rounded-lg border">
-                              <h4 className="text-sm font-medium text-foreground mb-1">
-                                Analiza nadawcy:
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {email.sender_analysis.reason}
-                              </p>
-                            </div>
-                          )}
-
-                          {email.link_analysis &&
-                            email.link_analysis.length > 0 && (
-                              <div>
-                                <h4 className="text-sm font-medium text-foreground mb-2">
-                                  Wykryte linki: {email.link_analysis.length}
-                                </h4>
-                                <div className="space-y-2">
-                                  {email.link_analysis
-                                    .slice(0, 2)
-                                    .map((link: any, idx: number) => (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center gap-2 text-xs p-2 bg-muted rounded"
-                                      >
-                                        <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />
-                                        <span className="truncate">
-                                          {link.url}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  {email.link_analysis.length > 2 && (
-                                    <p className="text-xs text-muted-foreground">
-                                      +{email.link_analysis.length - 2} więcej
-                                      linków
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                        </CardContent>
-                      )}
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          )}
-
-          {activeTab === "articles" && (
-            <div className="space-y-4">
-              {fakeNewsArticles.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <Shield className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      Brak wykrytych fałszywych wiadomości
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                fakeNewsArticles.map((article) => {
-                  const isExpanded = expandedArticles.has(article.id);
-                  return (
-                    <Card
-                      key={article.id}
-                      className="hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader
-                        className="cursor-pointer"
-                        onClick={() => toggleArticleExpansion(article.id)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <Link2 className="w-4 h-4 text-muted-foreground" />
-                              <CardTitle className="text-lg truncate">
-                                {new URL(article.article_url).hostname}
-                              </CardTitle>
-                              <span className="text-xs px-2 py-1 rounded-full font-medium bg-red-500/10 text-red-600">
-                                Fake News
-                              </span>
-                            </div>
-                            <CardDescription className="flex flex-wrap items-center gap-4">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(article.created_at)}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3" />
-                                Pewność: {article.confidence}%
-                              </span>
-                            </CardDescription>
-                            <div className="mt-3">
-                              <p className="text-sm text-muted-foreground">
-                                {isExpanded ? (
-                                  <span className="flex items-center gap-1">
-                                    <ChevronUp className="w-4 h-4" />
-                                    Kliknij aby zwinąć
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1">
-                                    <ChevronDown className="w-4 h-4" />
-                                    Kliknij aby rozwinąć
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                          <AlertTriangle className="w-6 h-6 text-red-600 shrink-0" />
-                        </div>
-                      </CardHeader>
-                      {isExpanded && (
-                        <CardContent className="space-y-4 border-t pt-4">
-                          <div>
-                            <a
-                              href={article.article_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-primary hover:underline mb-3 break-all"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLink className="w-4 h-4 shrink-0" />
-                              <span className="break-all">
-                                {article.article_url}
-                              </span>
-                            </a>
-                          </div>
-
-                          <div className="p-3 bg-background rounded-lg border">
-                            <h4 className="text-sm font-medium text-foreground mb-2">
-                              Uzasadnienie:
-                            </h4>
-                            <div className="text-sm text-muted-foreground prose prose-sm max-w-none">
-                              <Markdown remarkPlugins={[remarkGfm]}>
-                                {article.reasoning}
-                              </Markdown>
-                            </div>
-                          </div>
-                        </CardContent>
-                      )}
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          )}
-        </>
       )}
 
-      <div className="mt-6">
-        <Button
-          onClick={handleRefresh}
-          variant="outline"
-          className="w-full"
-          disabled={isLoading}
-        >
-          <Loader2
-            className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")}
-          />
-          {isLoading ? "Ładowanie..." : "Odśwież dane"}
-        </Button>
-      </div>
+      {result && (
+        <>
+          <Card className={`${getResultColor(result.isAI)} border-2`}>
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4 mb-6">
+                {getResultIcon(result.isAI)}
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold mb-1">
+                    {getResultTitle(result.isAI)}
+                  </h3>
+                  <p className="text-sm">
+                    {getResultDescription(result.isAI, result.confidence)}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <div>
+                  <h4 className="font-semibold mb-2">Kluczowe wskaźniki:</h4>
+                  <ul className="space-y-2">
+                    {result.indicators.map((indicator, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-2 text-sm"
+                      >
+                        <span className="w-1.5 h-1.5 bg-current rounded-full mt-2" />
+                        {indicator}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-white my-3 dark:bg-slate-800 rounded-lg border">
+                  <h4 className="font-medium mb-1">Zalecenie:</h4>
+                  <p className="text-sm">
+                    {result.isAI
+                      ? "Zalecamy ostrożność i weryfikację informacji w innych źródłach."
+                      : "Artykuł wydaje się wiarygodny, ale warto porównać informacje z innymi źródłami."}
+                  </p>
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReasoning(!showReasoning)}
+                  size="lg"
+                  className="w-full"
+                >
+                  {showReasoning ? (
+                    <>
+                      <ChevronUp className="w-4 h-4 mr-2" />
+                      Ukryj szczegóły
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4 mr-2" />
+                      Pokaż szczegóły
+                    </>
+                  )}
+                </Button>
+
+                {showReasoning && (
+                  <div className="mt-4 bg-background p-4 space-y-2 rounded-md border border-border">
+                    <p className="text-base font-semibold">Wyjaśnienie:</p>
+                    <div>
+                      <div
+                        className={`text-sm  text-slate-600 dark:text-slate-400`}
+                      >
+                        <Markdown remarkPlugins={[remarkGfm]}>
+                          {result.reasoning}
+                        </Markdown>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex gap-4 mt-4">
+            <Button
+              onClick={() => {
+                setResult(null);
+                setArticleUrl("");
+                setShowReasoning(false);
+              }}
+              className="flex-1"
+              size="lg"
+            >
+              Sprawdź kolejny artykuł
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

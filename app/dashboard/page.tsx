@@ -15,7 +15,7 @@ const Dashboard = () => {
     {
       to: "/dashboard/sprawdz-zdjecie",
       icon: ImageIcon,
-      title: "Wykrywacz AI Zdjęć",
+      title: "Wykrywacz Zdjęć AI",
       description:
         "Sprawdź czy zdjęcie zostało wygenerowane przez sztuczną inteligencję",
       color: "text-blue-600",

@@ -279,7 +279,7 @@ const ImageChecker = () => {
     <div className="max-w-3xl mx-auto p-4">
       <div className="mb-8 text-center sm:text-left">
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Wykrywacz AI Zdjęć
+          Wykrywacz Zdjęć AI
         </h1>
         <p className="text-muted-foreground">
           Sprawdź czy zdjęcie zostało wygenerowane przez sztuczną inteligencję
@@ -295,243 +295,261 @@ const ImageChecker = () => {
         ref={fileInputRef}
       />
 
-      {!previewUrl ? (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Prześlij zdjęcie</CardTitle>
-            <CardDescription>
-              Możesz przesłać plik lub wkleić link do zdjęcia
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs
-              defaultValue="file"
-              className="w-full"
-              onValueChange={() => setImageUrl("")}
-            >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="file">Prześlij Plik</TabsTrigger>
-                <TabsTrigger value="url">Wklej URL</TabsTrigger>
-              </TabsList>
-              <TabsContent value="file" className="pt-4">
+      {!result && (
+        <>
+          {!previewUrl ? (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Prześlij zdjęcie</CardTitle>
+                <CardDescription>
+                  Możesz przesłać plik lub wkleić link do zdjęcia
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs
+                  defaultValue="file"
+                  className="w-full"
+                  onValueChange={() => setImageUrl("")}
+                >
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="file">Prześlij Plik</TabsTrigger>
+                    <TabsTrigger value="url">Wklej URL</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="file" className="pt-4">
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`flex flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed p-10 transition-colors cursor-pointer hover:bg-muted/50 ${
+                        isDragging
+                          ? "border-primary bg-primary/10"
+                          : "border-border"
+                      }`}
+                    >
+                      <Upload className="w-10 h-10 text-muted-foreground" />
+                      <div className="text-center space-y-2">
+                        <p className="text-foreground font-medium">
+                          Przeciągnij i upuść zdjęcie tutaj
+                        </p>
+                        <p className="text-sm text-muted-foreground">lub</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fileInputRef.current?.click();
+                          }}
+                        >
+                          Wybierz Zdjęcie
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Możesz też wkleić (Ctrl+V) • Maks. 10MB
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="url" className="pt-4">
+                    <div className="space-y-4">
+                      <Label htmlFor="url-input" className="block mb-2">
+                        URL Zdjęcia
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="url-input"
+                          value={imageUrl}
+                          onChange={(e) => setImageUrl(e.target.value)}
+                          placeholder="https://example.com/image.png"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleUrlLoad();
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={handleUrlLoad}
+                          disabled={isAnalyzing || !imageUrl}
+                          className="whitespace-nowrap"
+                        >
+                          <Download className="mr-0 h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Wczytaj</span>
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="mb-6 animate-in fade-in zoom-in-95 duration-300">
+              <CardContent>
                 <div
+                  className={`w-full overflow-hidden rounded-lg border relative transition-colors ${
+                    isDragging
+                      ? "border-primary border-2 bg-primary/10"
+                      : "border-border"
+                  }`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`flex flex-col items-center justify-center space-y-4 rounded-lg border-2 border-dashed p-10 transition-colors cursor-pointer hover:bg-muted/50 ${
-                    isDragging
-                      ? "border-primary bg-primary/10"
-                      : "border-border"
-                  }`}
                 >
-                  <Upload className="w-10 h-10 text-muted-foreground" />
-                  <div className="text-center space-y-2">
-                    <p className="text-foreground font-medium">
-                      Przeciągnij i upuść zdjęcie tutaj
-                    </p>
-                    <p className="text-sm text-muted-foreground">lub</p>
+                  <img
+                    src={previewUrl}
+                    alt="Podgląd"
+                    className="w-full h-full object-contain bg-black/5"
+                  />
+
+                  <div className="absolute top-2 right-2 flex gap-2">
                     <Button
-                      type="button"
+                      size="sm"
                       variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
+                      disabled={isAnalyzing}
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      Wybierz Zdjęcie
+                      Zmień
                     </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Możesz też wkleić (Ctrl+V) • Maks. 10MB
-                  </p>
-                </div>
-              </TabsContent>
-              <TabsContent value="url" className="pt-4">
-                <div className="space-y-4">
-                  <Label htmlFor="url-input" className="block mb-2">
-                    URL Zdjęcia
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="url-input"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://example.com/image.png"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleUrlLoad();
-                        }
-                      }}
-                    />
                     <Button
-                      onClick={handleUrlLoad}
-                      disabled={isAnalyzing || !imageUrl}
-                      className="whitespace-nowrap"
+                      size="sm"
+                      variant="destructive"
+                      onClick={resetImage}
+                      disabled={isAnalyzing}
                     >
-                      <Download className="mr-0 h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Wczytaj</span>
+                      Usuń
                     </Button>
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="mb-6 animate-in fade-in zoom-in-95 duration-300">
-          <CardContent className="pt-6">
-            <div
-              className={`w-full max-w-md mx-auto aspect-square overflow-hidden rounded-lg border relative transition-colors ${
-                isDragging
-                  ? "border-primary border-2 bg-primary/10"
-                  : "border-border"
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <img
-                src={previewUrl}
-                alt="Podgląd"
-                className="w-full h-full object-contain bg-black/5"
-              />
 
-              <div className="absolute top-2 right-2 flex gap-2">
+                  {isDragging && (
+                    <div className="absolute inset-0 bg-primary/10 flex items-center justify-center backdrop-blur-sm">
+                      <div className="text-center">
+                        <Upload className="h-12 w-12 mx-auto mb-2 text-primary" />
+                        <p className="text-sm font-medium text-primary">
+                          Upuść nowe zdjęcie tutaj
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    fileInputRef.current?.click();
-                  }}
+                  onClick={analyzeImage}
+                  disabled={isAnalyzing}
+                  className="w-full mt-4"
+                  size="lg"
                 >
-                  Zmień
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Analizuję zdjęcie...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-5 h-5 mr-2" />
+                      Sprawdź zdjęcie
+                    </>
+                  )}
                 </Button>
-                <Button size="sm" variant="destructive" onClick={resetImage}>
-                  Usuń
-                </Button>
-              </div>
-
-              {isDragging && (
-                <div className="absolute inset-0 bg-primary/10 flex items-center justify-center backdrop-blur-sm">
-                  <div className="text-center">
-                    <Upload className="h-12 w-12 mx-auto mb-2 text-primary" />
-                    <p className="text-sm font-medium text-primary">
-                      Upuść nowe zdjęcie tutaj
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <Button
-              onClick={analyzeImage}
-              disabled={isAnalyzing}
-              className="w-full mt-4"
-              size="lg"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Analizuję zdjęcie...
-                </>
-              ) : (
-                <>
-                  <ImageIcon className="w-5 h-5 mr-2" />
-                  Sprawdź zdjęcie
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {result && (
-        <Card
-          className={`${getResultColor(
-            getStatus(result.isAI, result.confidence)
-          )} border-2 animate-in slide-in-from-bottom-5 duration-500`}
-        >
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4 mb-6">
-              {getResultIcon(getStatus(result.isAI, result.confidence))}
-              <div className="flex-1">
-                <h3 className="text-xl font-semibold text-foreground mb-1">
-                  {getResultTitle(getStatus(result.isAI, result.confidence))}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Pewność analizy:{" "}
-                  <span className="font-bold">{result.confidence}%</span>
-                </p>
-                <p className="text-foreground">{result.summary}</p>
+        <>
+          <Card
+            className={`${getResultColor(
+              getStatus(result.isAI, result.confidence)
+            )} border-2 animate-in slide-in-from-bottom-5 duration-500`}
+          >
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4 mb-6">
+                {getResultIcon(getStatus(result.isAI, result.confidence))}
+                <div className="flex-1">
+                  <h3 className="text-xl font-semibold text-foreground mb-1">
+                    {getResultTitle(getStatus(result.isAI, result.confidence))}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Pewność analizy:{" "}
+                    <span className="font-bold">{result.confidence}%</span>
+                  </p>
+                  <p className="text-foreground">{result.summary}</p>
+                </div>
               </div>
-            </div>
 
-            <Button
-              onClick={() => setShowMore(!showMore)}
-              className="w-full my-4"
-              size="sm"
-              variant="outline"
-            >
-              {showMore ? "Zwiń" : "Pokaż szczegóły analizy"}
-            </Button>
+              <Button
+                onClick={() => setShowMore(!showMore)}
+                className="w-full my-4"
+                size="sm"
+                variant="outline"
+              >
+                {showMore ? "Zwiń" : "Pokaż szczegóły analizy"}
+              </Button>
 
-            {showMore && (
-              <Tabs defaultValue="reasoning" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 ">
-                  <TabsTrigger value="reasoning">Szczegóły analizy</TabsTrigger>
-                  <TabsTrigger value="indicators">Wskaźniki</TabsTrigger>
-                </TabsList>
-                <TabsContent
-                  value="reasoning"
-                  className="p-4 border-border border rounded-md bg-background"
-                >
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">
-                      Proces analizy:
-                    </h4>
-                    <ul className="list-disc list-inside space-y-2">
-                      {result.reasoning.map((reason, idx) => (
-                        <li
-                          key={`reason-${idx}`}
-                          className="text-sm text-muted-foreground"
-                        >
-                          {reason}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </TabsContent>
-                <TabsContent
-                  value="indicators"
-                  className="p-4 border-border border rounded-md bg-background"
-                >
-                  {result.indicators && result.indicators.length > 0 ? (
+              {showMore && (
+                <Tabs defaultValue="reasoning" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 ">
+                    <TabsTrigger value="reasoning">
+                      Szczegóły analizy
+                    </TabsTrigger>
+                    <TabsTrigger value="indicators">Wskaźniki</TabsTrigger>
+                  </TabsList>
+                  <TabsContent
+                    value="reasoning"
+                    className="p-4 border-border border rounded-md bg-background"
+                  >
                     <div className="space-y-2">
                       <h4 className="text-sm font-semibold text-foreground mb-3">
-                        Wykryte wskaźniki:
+                        Proces analizy:
                       </h4>
                       <ul className="list-disc list-inside space-y-2">
-                        {result.indicators.map((indicator, idx) => (
+                        {result.reasoning.map((reason, idx) => (
                           <li
-                            key={`ind-${idx}`}
+                            key={`reason-${idx}`}
                             className="text-sm text-muted-foreground"
                           >
-                            {indicator}
+                            {reason}
                           </li>
                         ))}
                       </ul>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Brak dodatkowych wskaźników do wyświetlenia.
-                    </p>
-                  )}
-                </TabsContent>
-              </Tabs>
-            )}
-          </CardContent>
-        </Card>
+                  </TabsContent>
+                  <TabsContent
+                    value="indicators"
+                    className="p-4 border-border border rounded-md bg-background"
+                  >
+                    {result.indicators && result.indicators.length > 0 ? (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold text-foreground mb-3">
+                          Wykryte wskaźniki:
+                        </h4>
+                        <ul className="list-disc list-inside space-y-2">
+                          {result.indicators.map((indicator, idx) => (
+                            <li
+                              key={`ind-${idx}`}
+                              className="text-sm text-muted-foreground"
+                            >
+                              {indicator}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Brak dodatkowych wskaźników do wyświetlenia.
+                      </p>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
+          </Card>
+
+          <Button onClick={resetImage} className="w-full my-4" size="sm">
+            Sprawdź nowe zdjęcie
+          </Button>
+        </>
       )}
     </div>
   );

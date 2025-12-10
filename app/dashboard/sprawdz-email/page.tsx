@@ -147,63 +147,65 @@ const EmailChecker = () => {
         </p>
       </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Dane e-maila</CardTitle>
-          <CardDescription>
-            Wklej adres nadawcy i treść wiadomości do sprawdzenia
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="senderEmail">Adres nadawcy</Label>
-            <Input
-              id="senderEmail"
-              type="email"
-              placeholder="nadawca@example.com"
-              value={senderEmail}
-              onChange={(e) => {
-                setSenderEmail(e.target.value);
-                setResult(null);
-              }}
-            />
-          </div>
+      {!result && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Dane e-maila</CardTitle>
+            <CardDescription>
+              Wklej adres nadawcy i treść wiadomości do sprawdzenia
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="senderEmail">Adres nadawcy</Label>
+              <Input
+                id="senderEmail"
+                type="email"
+                placeholder="nadawca@example.com"
+                value={senderEmail}
+                onChange={(e) => {
+                  setSenderEmail(e.target.value);
+                  setResult(null);
+                }}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="emailContent">Treść e-maila</Label>
-            <Textarea
-              id="emailContent"
-              placeholder="Wklej tutaj całą treść e-maila, łącznie z linkami..."
-              value={emailContent}
-              onChange={(e) => {
-                setEmailContent(e.target.value);
-                setResult(null);
-              }}
-              rows={8}
-            />
-            <p className="text-xs text-muted-foreground">
-              Wskazówka: Wklej całą treść e-maila - nasze AI przeanalizuje
-              również wszystkie linki
-            </p>
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="emailContent">Treść e-maila</Label>
+              <Textarea
+                id="emailContent"
+                placeholder="Wklej tutaj całą treść e-maila, łącznie z linkami..."
+                value={emailContent}
+                onChange={(e) => {
+                  setEmailContent(e.target.value);
+                  setResult(null);
+                }}
+                rows={8}
+              />
+              <p className="text-xs text-muted-foreground">
+                Wskazówka: Wklej całą treść e-maila - nasze AI przeanalizuje
+                również wszystkie linki
+              </p>
+            </div>
 
-          <Button
-            onClick={analyzeEmail}
-            disabled={isAnalyzing || !senderEmail || !emailContent}
-            className="w-full"
-            size="lg"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Analizuję e-mail...
-              </>
-            ) : (
-              <>Sprawdź e-mail</>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+            <Button
+              onClick={analyzeEmail}
+              disabled={isAnalyzing || !senderEmail || !emailContent}
+              className="w-full"
+              size="lg"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Analizuję e-mail...
+                </>
+              ) : (
+                <>Sprawdź e-mail</>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {result && (
         <Card className={`${getResultColor(result.status)} border-2`}>
