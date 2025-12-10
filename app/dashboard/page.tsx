@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ImageIcon, Newspaper, Mail, ArrowRight } from "lucide-react";
+import { ImageIcon, Newspaper, Mail, ArrowRight, KeyRound } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,21 +18,29 @@ const Dashboard = () => {
       title: "Wykrywacz AI Zdjęć",
       description:
         "Sprawdź czy zdjęcie zostało wygenerowane przez sztuczną inteligencję",
-      color: "bg-blue-500/10 text-blue-600",
+      color: "text-blue-600",
     },
     {
       to: "/dashboard/sprawdz-artykul",
       icon: Newspaper,
       title: "Weryfikator Newsów",
       description: "Sprawdź wiarygodność artykułu i wykryj fałszywe informacje",
-      color: "bg-green-500/10 text-green-600",
+      color: "text-green-600",
     },
     {
       to: "/dashboard/sprawdz-email",
       icon: Mail,
       title: "Detektor Phishingu",
       description: "Sprawdź czy e-mail nie jest próbą wyłudzenia danych",
-      color: "bg-orange-500/10 text-orange-600",
+      color: "text-orange-600",
+    },
+    {
+      to: "/dashboard/generuj-haslo",
+      icon: KeyRound,
+      title: "Generator Haseł",
+      description:
+        "Twórz w kilka sekund bezpieczne, unikalne hasła dopasowane do Twoich potrzeb.",
+      color: "text-purple-600",
     },
   ];
 
@@ -54,21 +62,19 @@ const Dashboard = () => {
             href={tool.to}
             className="group flex-1 block min-w-[280px]"
           >
-            <Card className="h-full border-border hover:border-primary/50 hover:shadow-lg transition-all duration-300">
-              <CardHeader>
-                <div
-                  className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 ${tool.color}`}
-                >
-                  <tool.icon className="w-7 h-7" />
+            <Card className="h-full border-border hover:border-primary/50 hover:shadow-lg transition-all duration-300 flex">
+              <CardHeader className="flex flex-col grow">
+                <div className="flex items-center gap-3 mb-2">
+                  <tool.icon className={`w-7 h-7 ${tool.color}`} />
+                  <CardTitle className="text-xl">{tool.title}</CardTitle>
                 </div>
-                <CardTitle className="text-xl">{tool.title}</CardTitle>
+
                 <CardDescription>{tool.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all">
+
+                <div className="mt-auto pt-4 flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all">
                   Rozpocznij <ArrowRight className="w-4 h-4" />
                 </div>
-              </CardContent>
+              </CardHeader>
             </Card>
           </Link>
         ))}

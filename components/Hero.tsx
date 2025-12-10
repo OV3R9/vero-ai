@@ -1,13 +1,26 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Newspaper, Mail, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
+
+const slideLeft = {
+  hidden: { opacity: 0, x: -80 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6 } },
+};
+
+const slideRight = {
+  hidden: { opacity: 0, x: 80 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.6 } },
+};
 
 const Hero = () => {
   return (
     <section className="relative overflow-hidden bg-linear-to-b from-hero-from to-hero-to py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16 animate-fade-in">
+        <div className="text-center mb-16">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">
             Chroń siebie i bliskich
             <br />
@@ -27,7 +40,13 @@ const Hero = () => {
         </div>
 
         <div className="w-full flex flex-col gap-12">
-          <section className="bg-white w-full rounded-2xl">
+          <motion.section
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={slideRight}
+            className="bg-white w-full rounded-2xl"
+          >
             <div className="mx-auto max-w-6xl px-4 md:px-6 py-12 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center">
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">
@@ -58,9 +77,15 @@ const Hero = () => {
                 />
               </div>
             </div>
-          </section>
+          </motion.section>
 
-          <section className="bg-white w-full rounded-2xl">
+          <motion.section
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={slideLeft}
+            className="bg-white w-full rounded-2xl"
+          >
             <div className="mx-auto max-w-6xl px-4 md:px-6 py-12 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center">
               <div className="w-full flex justify-center">
                 <Image
@@ -90,9 +115,15 @@ const Hero = () => {
                 </Link>
               </div>
             </div>
-          </section>
+          </motion.section>
 
-          <section className="bg-white w-full rounded-2xl">
+          <motion.section
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={slideRight}
+            className="bg-white w-full rounded-2xl"
+          >
             <div className="mx-auto max-w-6xl px-4 md:px-6 py-12 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center">
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">
@@ -101,8 +132,7 @@ const Hero = () => {
                 <p className="text-base md:text-lg text-black/70 mb-6">
                   Sprawdź, czy adres e-mail jest prawidłowy, aktywny i gotowy do
                   użycia. Weryfikator analizuje strukturę adresu, dostępność
-                  domeny oraz potencjalne błędy, dzięki czemu unikniesz
-                  wysyłania wiadomości na nieistniejące lub fałszywe skrzynki.
+                  domeny oraz potencjalne błędy.
                 </p>
 
                 <Link
@@ -123,9 +153,15 @@ const Hero = () => {
                 />
               </div>
             </div>
-          </section>
+          </motion.section>
 
-          <section className="bg-white w-full rounded-2xl">
+          <motion.section
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={slideLeft}
+            className="bg-white w-full rounded-2xl"
+          >
             <div className="mx-auto max-w-6xl px-4 md:px-6 py-12 md:py-20 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 items-center">
               <div className="w-full flex justify-center">
                 <Image
@@ -143,10 +179,8 @@ const Hero = () => {
                 </h1>
                 <p className="text-base md:text-lg text-black/70 mb-6">
                   Twórz w kilka sekund bezpieczne, unikalne hasła dopasowane do
-                  Twoich potrzeb. Nasz generator pozwala określić długość hasła,
-                  używane znaki oraz poziom skomplikowania. Dzięki temu
-                  zyskujesz pewność, że Twoje dane są chronione przed
-                  niepowołanym dostępem.
+                  Twoich potrzeb. Wybierz długość hasła i stopień
+                  skomplikowania.
                 </p>
 
                 <Link
@@ -157,7 +191,7 @@ const Hero = () => {
                 </Link>
               </div>
             </div>
-          </section>
+          </motion.section>
         </div>
       </div>
     </section>
