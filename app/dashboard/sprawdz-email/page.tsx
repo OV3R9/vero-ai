@@ -23,14 +23,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
 import supabase from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import { ResultStatus } from "@/lib/types";
-
-interface LinkAnalysis {
-  url: string;
-  status: "dangerous" | "suspicious" | "safe";
-  reason: string;
-}
+import {
+  cn,
+  getLinkStatusColor,
+  getLinkStatusLabel,
+  getLinkStatusUnderline,
+  getResultColor,
+  getResultTitle,
+} from "@/lib/utils";
+import { LinkAnalysis, ResultStatus } from "@/lib/types";
 
 interface AnalysisResult {
   status: ResultStatus;
@@ -44,6 +45,19 @@ interface AnalysisResult {
   linkAnalysis: LinkAnalysis[];
   recommendation: string;
 }
+
+const getResultIcon = (status: ResultStatus) => {
+  switch (status) {
+    case "phishing":
+      return <XCircle className="w-8 h-8 text-destructive" />;
+    case "safe":
+      return <CheckCircle className="w-8 h-8 text-green-600" />;
+    case "suspicious":
+      return <AlertTriangle className="w-8 h-8 text-yellow-600" />;
+    default:
+      return null;
+  }
+};
 
 const EmailChecker = () => {
   const [senderEmail, setSenderEmail] = useState("");
@@ -62,7 +76,8 @@ const EmailChecker = () => {
           email_content: emailContent,
           confidence: analysisResult.confidence,
           status: analysisResult.status,
-          analysis_result: JSON.stringify(analysisResult),
+          sender_analysis: analysisResult.senderAnalysis,
+          link_analysis: analysisResult.linkAnalysis,
         });
 
         if (error) {
@@ -119,78 +134,6 @@ const EmailChecker = () => {
     }
 
     setIsAnalyzing(false);
-  };
-
-  const getResultIcon = (status: ResultStatus) => {
-    switch (status) {
-      case "phishing":
-        return <XCircle className="w-8 h-8 text-destructive" />;
-      case "safe":
-        return <CheckCircle className="w-8 h-8 text-green-600" />;
-      case "suspicious":
-        return <AlertTriangle className="w-8 h-8 text-yellow-600" />;
-      default:
-        return null;
-    }
-  };
-
-  const getResultTitle = (status: ResultStatus) => {
-    switch (status) {
-      case "phishing":
-        return "UWAGA: Prawdopodobnie phishing!";
-      case "safe":
-        return "E-mail wydaje się bezpieczny";
-      case "suspicious":
-        return "Podejrzany e-mail - zachowaj ostrożność";
-      default:
-        return "";
-    }
-  };
-
-  const getResultColor = (status: ResultStatus) => {
-    switch (status) {
-      case "phishing":
-        return "border-destructive/50 bg-destructive/5";
-      case "safe":
-        return "border-green-500/50 bg-green-500/5";
-      case "suspicious":
-        return "border-yellow-500/50 bg-yellow-500/5";
-      default:
-        return "";
-    }
-  };
-
-  const getLinkStatusColor = (status: LinkAnalysis["status"]) => {
-    switch (status) {
-      case "dangerous":
-        return "text-destructive bg-destructive/10";
-      case "suspicious":
-        return "text-yellow-600 bg-yellow-500/10";
-      case "safe":
-        return "text-green-600 bg-green-500/10";
-    }
-  };
-
-  const getLinkStatusUnderline = (status: LinkAnalysis["status"]) => {
-    switch (status) {
-      case "dangerous":
-        return "decoration-destructive bg-destructive/10";
-      case "suspicious":
-        return "decoration-yellow-600 bg-yellow-500/10";
-      case "safe":
-        return "decoration-green-600 bg-green-500/10";
-    }
-  };
-
-  const getLinkStatusLabel = (status: LinkAnalysis["status"]) => {
-    switch (status) {
-      case "dangerous":
-        return "Niebezpieczny";
-      case "suspicious":
-        return "Podejrzany";
-      case "safe":
-        return "Bezpieczny";
-    }
   };
 
   return (
