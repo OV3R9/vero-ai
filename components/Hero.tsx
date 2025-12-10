@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Shield, Image, Newspaper, Mail, ArrowRight } from "lucide-react";
+import { Image as ImageIcon, Newspaper, Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const Hero = () => {
   return (
@@ -25,56 +26,135 @@ const Hero = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-scale-in relative">
-          <Link href="/dashboard/sprawdz-zdjecie" className="group">
-            <div className="bg-card rounded-2xl p-8 shadow-lg border border-border hover:border-primary/50 hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center mb-4 gap-4">
-                <div className="h-14 items-center flex justify-center">
-                  <Image className="w-7 h-7 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground">
-                  Wykrywacz AI Zdjęć
-                </h3>
-              </div>
-              <p className="text-muted-foreground">
-                Sprawdź czy zdjęcie zostało wygenerowane przez sztuczną
-                inteligencję
-              </p>
-            </div>
-          </Link>
+        <div className="w-full flex flex-col gap-12">
+          <section className="bg-white w-full rounded-2xl">
+            <div className="mx-auto max-w-6xl px-6 py-20 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h1 className="text-4xl font-bold text-black mb-4">
+                  🖼️ Weryfikator zdjęć AI
+                </h1>
+                <p className="text-lg text-black/70 mb-6">
+                  Dowiedz się, czy zdjęcie zostało stworzone przez sztuczną
+                  inteligencję. Nasz system identyfikuje artefakty typowe dla
+                  generatywnych modeli, analizuje szczegóły obrazu i wykrywa
+                  nienaturalne wzorce. Idealne narzędzie do weryfikacji
+                  autentyczności treści wizualnych.
+                </p>
 
-          <Link href="/dashboard/sprawdz-artykul" className="group">
-            <div className="bg-card rounded-2xl p-8 shadow-lg border border-border hover:border-primary/50 hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center mb-4 gap-4">
-                <div className="h-14 flex items-center justify-center">
-                  <Newspaper className="w-7 h-7 text-primary" />
-                </div>
-
-                <h3 className="text-xl font-semibold text-foreground">
-                  Weryfikator Wiadomości
-                </h3>
+                <Link
+                  href="#"
+                  className="inline-block bg-[#0056d2] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0041a0] transition"
+                >
+                  Wypróbuj weryfikator zdjęć
+                </Link>
               </div>
-              <p className="text-muted-foreground">
-                Sprawdź wiarygodność artykułu i wykryj fałszywe informacje
-              </p>
-            </div>
-          </Link>
 
-          <Link href="/dashboard/sprawdz-email" className="group">
-            <div className="bg-card rounded-2xl p-8 shadow-lg border border-border hover:border-primary/50 hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center mb-4 gap-4">
-                <div className="h-14 flex items-center justify-center ">
-                  <Mail className="w-7 h-7 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground">
-                  Detektor Phishingu
-                </h3>
+              <div className="w-full flex justify-center">
+                <Image
+                  src="/Screen1.png"
+                  alt="Hero Image"
+                  width={500}
+                  height={350}
+                  className="rounded-xl shadow-md"
+                />
               </div>
-              <p className="text-muted-foreground">
-                Sprawdź czy e-mail nie jest próbą wyłudzenia danych
-              </p>
             </div>
-          </Link>
+          </section>
+          <section className="bg-white w-full rounded-2xl">
+            <div className="mx-auto max-w-6xl px-6 py-20 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div className="w-full flex justify-center">
+                <Image
+                  src="/Screen2.png"
+                  alt="Hero Image"
+                  width={500}
+                  height={350}
+                  className="rounded-xl shadow-md"
+                />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-black mb-4">
+                  📰 Weryfikator newsów
+                </h1>
+                <p className="text-lg text-black/70 mb-6">
+                  Sprawdzaj szybko, czy wiadomość pochodzi z wiarygodnego
+                  źródła. Analizujemy treść, porównujemy ją z renomowanymi
+                  portalami oraz wykrywamy typowe sygnały dezinformacji. To
+                  sposób na łatwiejsze odróżnianie faktów od fake newsów.
+                </p>
+
+                <Link
+                  href="#"
+                  className="inline-block bg-[#0056d2] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0041a0] transition"
+                >
+                  Wypróbuj weryfikator newsów
+                </Link>
+              </div>
+            </div>
+          </section>
+          <section className="bg-white w-full rounded-2xl">
+            <div className="mx-auto max-w-6xl px-6 py-20 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h1 className="text-4xl font-bold text-black mb-4">
+                  📧 Weryfikator adresów e-mail
+                </h1>
+                <p className="text-lg text-black/70 mb-6">
+                  Sprawdź, czy adres e-mail jest prawidłowy, aktywny i gotowy do
+                  użycia. Weryfikator analizuje strukturę adresu, dostępność
+                  domeny oraz potencjalne błędy, dzięki czemu unikniesz
+                  wysyłania wiadomości na nieistniejące lub fałszywe skrzynki.
+                </p>
+
+                <Link
+                  href="#"
+                  className="inline-block bg-[#0056d2] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0041a0] transition"
+                >
+                  Wypróbuj weryfikator e-mail
+                </Link>
+              </div>
+
+              <div className="w-full flex justify-center">
+                <Image
+                  src="/Screen3.png"
+                  alt="Hero Image"
+                  width={500}
+                  height={350}
+                  className="rounded-xl shadow-md"
+                />
+              </div>
+            </div>
+          </section>
+          <section className="bg-white w-full rounded-2xl">
+            <div className="mx-auto max-w-6xl px-6 py-20 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+              <div className="w-full flex justify-center">
+                <Image
+                  src="/Screen4.png"
+                  alt="Hero Image"
+                  width={500}
+                  height={350}
+                  className="rounded-xl shadow-md"
+                />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold text-black mb-4">
+                  🔐 Generator haseł
+                </h1>
+                <p className="text-lg text-black/70 mb-6">
+                  Twórz w kilka sekund bezpieczne, unikalne hasła dopasowane do
+                  Twoich potrzeb. Nasz generator pozwala określić długość hasła,
+                  używane znaki oraz poziom skomplikowania. Dzięki temu
+                  zyskujesz pewność, że Twoje dane są chronione przed
+                  niepowołanym dostępem.
+                </p>
+
+                <Link
+                  href="#"
+                  className="inline-block bg-[#0056d2] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#0041a0] transition"
+                >
+                  Wypróbuj generator haseł
+                </Link>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </section>

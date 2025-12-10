@@ -30,6 +30,12 @@ const Header = () => {
             >
               Bezpieczeństwo
             </Link>
+            <Link
+              href="/tutorial"
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              Poradnik
+            </Link>
           </div>
 
           <Link href="/dashboard">
