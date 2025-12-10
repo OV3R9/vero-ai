@@ -172,7 +172,7 @@ const Tutorial = () => {
             <div className="space-y-4">
               <div className="relative w-full bg-muted rounded-lg overflow-hidden border border-border">
                 <Image
-                  src={imgUrlHelp('image-detector-step1')}
+                  src={imgUrlHelp('image-detector-step4')}
                   alt="Wynik analizy pokazujący zdjęcie autentyczne ze wskaźnikiem pewności"
                   width={800}
                   height={450}
