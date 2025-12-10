@@ -1,8 +1,12 @@
 "use client";
 
 import Header from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Link } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const FAQ = () => {
+  const router = useRouter();
   const faqs = [
     {
       question: "Jak to działa?",
@@ -29,6 +33,10 @@ const FAQ = () => {
         {
           title: "Podejrzane e‑maile",
           desc: "Wykryj phishing i próby wyłudzenia danych.",
+        },
+        {
+          title: "Generacja hasła",
+          desc: "Twórz silne i bezpieczne hasła.",
         },
       ],
     },
@@ -74,12 +82,9 @@ const FAQ = () => {
         </div>
 
         <div className="text-center mt-12">
-          <a
-            href="/"
-            className="underline text-primary text-xl font-medium hover:text-primary/80 transition"
-          >
-            Wróć do strony głównej
-          </a>
+          <Button onClick={() => router.back()}>
+            Powrót do poprzedniej strony
+          </Button>
         </div>
       </div>
     </div>
