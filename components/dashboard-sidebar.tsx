@@ -42,7 +42,7 @@ const DashboardSidebar = () => {
     },
   ];
 
-  const bottomLinks = [{ to: "#", icon: HelpCircle, label: "FAQ" }];
+  const bottomLinks = [{ to: "/faq", icon: HelpCircle, label: "FAQ" }];
 
   const isActive = (path: string, exact = false) => {
     if (exact) return pathname === path;
@@ -112,7 +112,7 @@ const DashboardSidebar = () => {
 
           <div className="space-y-1 mt-4 pb-4">
             {bottomLinks.map((link) => (
-              <a
+              <Link
                 key={link.label}
                 href={link.to}
                 onClick={() => setOpen(false)}
@@ -120,7 +120,7 @@ const DashboardSidebar = () => {
               >
                 <link.icon className="w-5 h-5" />
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
         </nav>
