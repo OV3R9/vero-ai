@@ -7,7 +7,6 @@ import {
   CheckCircle,
   XCircle,
   ExternalLink,
-  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,23 +18,22 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import supabase from "@/lib/supabase/client";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import toast from "react-hot-toast";
+
+type AnalysisResult = {
+  isAI: boolean;
+  confidence: number;
+  reasoning: string;
+  indicators: string[];
+};
 
 export default function ArticleChecker() {
   const [articleUrl, setArticleUrl] = useState("");
-  const [articleContent, setArticleContent] = useState("");
-  const [activeTab, setActiveTab] = useState("url");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<{
-    isAI: boolean;
-    confidence: number;
-    reasoning: string;
-    indicators: string[];
-  } | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const isValidUrl = (url: string) => {
     try {
@@ -46,26 +44,39 @@ export default function ArticleChecker() {
     }
   };
 
+  const saveFakeNews = async (analysisResult: AnalysisResult) => {
+    try {
+      const { error } = await supabase.from("fake_news_articles").insert({
+        article_url: articleUrl,
+        confidence: analysisResult.confidence,
+        reasoning: analysisResult.reasoning,
+      });
+
+      if (error) {
+        return false;
+      }
+
+      if (analysisResult.isAI && analysisResult.confidence >= 0.5) {
+        toast.success(
+          "Artykuł został oznaczony jako fałszywy i zapisany w bazie danych."
+        );
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
   const analyzeArticle = async () => {
-    let contentToAnalyze = "";
+    if (!articleUrl) {
+      alert("Wklej link do artykułu, który chcesz sprawdzić.");
+      return;
+    }
 
-    if (activeTab === "url") {
-      if (!articleUrl) {
-        alert("Wklej link do artykułu, który chcesz sprawdzić.");
-        return;
-      }
-
-      if (!isValidUrl(articleUrl)) {
-        alert("Upewnij się, że wklejony link jest poprawny.");
-        return;
-      }
-      contentToAnalyze = articleUrl;
-    } else {
-      if (!articleContent || articleContent.trim().length < 50) {
-        alert("Wklej treść artykułu (minimum 50 znaków).");
-        return;
-      }
-      contentToAnalyze = articleContent;
+    if (!isValidUrl(articleUrl)) {
+      alert("Upewnij się, że wklejony link jest poprawny.");
+      return;
     }
 
     setIsAnalyzing(true);
@@ -76,17 +87,18 @@ export default function ArticleChecker() {
         "check-fake-news",
         {
           body: {
-            content: contentToAnalyze,
-            isUrl: activeTab === "url",
+            content: articleUrl,
+            isUrl: true,
           },
         }
       );
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
+      if (error) throw new Error(error.message);
       setResult(data);
+
+      if (data.isAI && data.confidence >= 0.5) {
+        await saveFakeNews(data);
+      }
     } catch (error) {
       console.error("Error analyzing article:", error);
       alert("Wystąpił błąd podczas analizy. Spróbuj ponownie.");
@@ -95,37 +107,27 @@ export default function ArticleChecker() {
     }
   };
 
-  const getResultIcon = (isAI: boolean) => {
-    if (isAI) {
-      return <XCircle className="w-8 h-8 text-red-600" />;
-    } else {
-      return <CheckCircle className="w-8 h-8 text-green-600" />;
-    }
-  };
+  const getResultIcon = (isAI: boolean) =>
+    isAI ? (
+      <XCircle className="w-8 h-8 text-red-600" />
+    ) : (
+      <CheckCircle className="w-8 h-8 text-green-600" />
+    );
 
-  const getResultTitle = (isAI: boolean) => {
-    if (isAI) {
-      return "Prawdopodobnie fałszywa informacja";
-    } else {
-      return "Prawdopodobnie wiarygodny artykuł";
-    }
-  };
+  const getResultTitle = (isAI: boolean) =>
+    isAI
+      ? "Prawdopodobnie fałszywa informacja"
+      : "Prawdopodobnie wiarygodny artykuł";
 
-  const getResultColor = (isAI: boolean) => {
-    if (isAI) {
-      return "border-red-500/50 bg-red-500/5";
-    } else {
-      return "border-green-500/50 bg-green-500/5";
-    }
-  };
+  const getResultColor = (isAI: boolean) =>
+    isAI
+      ? "border-red-500/50 bg-red-500/5"
+      : "border-green-500/50 bg-green-500/5";
 
-  const getResultDescription = (isAI: boolean, confidence: number) => {
-    if (isAI) {
-      return `System wykrył cechy fałszywej informacji (pewność: ${confidence}%)`;
-    } else {
-      return `Artykuł wydaje się wiarygodny (pewność: ${confidence}%)`;
-    }
-  };
+  const getResultDescription = (isAI: boolean, confidence: number) =>
+    isAI
+      ? `System wykrył cechy fałszywej informacji (pewność: ${confidence}%)`
+      : `Artykuł wydaje się wiarygodny (pewność: ${confidence}%)`;
 
   return (
     <div className="max-w-3xl mx-auto py-8">
@@ -141,108 +143,56 @@ export default function ArticleChecker() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Dodaj artykuł do weryfikacji</CardTitle>
-          <CardDescription>
-            Wklej link lub treść artykułu, który chcesz sprawdzić
-          </CardDescription>
+          <CardDescription>Wklej link artykułu</CardDescription>
         </CardHeader>
+
         <CardContent>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="url" className="gap-2">
-                <Link className="w-4 h-4" />
-                Link URL
-              </TabsTrigger>
-              <TabsTrigger value="content" className="gap-2">
-                <FileText className="w-4 h-4" />
-                Treść artykułu
-              </TabsTrigger>
-            </TabsList>
+          <div className="space-y-4">
+            <Label htmlFor="articleUrl">Link do artykułu</Label>
+            <Input
+              id="articleUrl"
+              type="url"
+              placeholder="https://example.com/artykul"
+              value={articleUrl}
+              onChange={(e) => {
+                setArticleUrl(e.target.value);
+                setResult(null);
+              }}
+            />
 
-            <TabsContent value="url" className="space-y-6 mt-0">
-              <div className="space-y-2">
-                <Label htmlFor="articleUrl">Link do artykułu</Label>
-                <Input
-                  id="articleUrl"
-                  type="url"
-                  placeholder="https://example.com/artykul"
-                  value={articleUrl}
-                  onChange={(e) => {
-                    setArticleUrl(e.target.value);
-                    setResult(null);
-                  }}
-                  onBlur={() => {
-                    if (articleUrl && isValidUrl(articleUrl)) {
-                      setResult(null);
-                    }
-                  }}
-                />
-              </div>
-
-              {articleUrl && isValidUrl(articleUrl) && (
-                <a
-                  href={articleUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg"
-                >
-                  <ExternalLink className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <span className="text-sm text-slate-600 underline decoration-primary dark:text-slate-400 truncate">
-                    {new URL(articleUrl).hostname}
-                  </span>
-                </a>
-              )}
-            </TabsContent>
-
-            <TabsContent value="content" className="space-y-6 mt-0">
-              <div className="space-y-2">
-                <Label htmlFor="articleContent">Treść artykułu</Label>
-                <Textarea
-                  id="articleContent"
-                  placeholder="Wklej tutaj pełną treść artykułu, który chcesz zweryfikować..."
-                  value={articleContent}
-                  onChange={(e) => {
-                    setArticleContent(e.target.value);
-                    setResult(null);
-                  }}
-                  rows={10}
-                  className="resize-none"
-                />
-              </div>
-
-              {articleContent && (
-                <div className="text-sm text-slate-600 dark:text-slate-400">
-                  Liczba znaków: {articleContent.length}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-
-          <Button
-            onClick={analyzeArticle}
-            disabled={
-              isAnalyzing ||
-              (activeTab === "url" && !articleUrl) ||
-              (activeTab === "content" && !articleContent)
-            }
-            className="w-full mt-6"
-            size="lg"
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Analizuję artykuł...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Sprawdź wiarygodność
-              </>
+            {articleUrl && isValidUrl(articleUrl) && (
+              <a
+                href={articleUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg"
+              >
+                <ExternalLink className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                <span className="text-sm underline decoration-primary truncate">
+                  {new URL(articleUrl).hostname}
+                </span>
+              </a>
             )}
-          </Button>
+
+            <Button
+              onClick={analyzeArticle}
+              disabled={isAnalyzing || !articleUrl}
+              className="w-full mt-4"
+              size="lg"
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Analizuję artykuł...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Sprawdź wiarygodność
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -252,10 +202,10 @@ export default function ArticleChecker() {
             <div className="flex items-start gap-4 mb-6">
               {getResultIcon(result.isAI)}
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-1">
+                <h3 className="text-xl font-semibold mb-1">
                   {getResultTitle(result.isAI)}
                 </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm">
                   {getResultDescription(result.isAI, result.confidence)}
                 </p>
               </div>
@@ -263,39 +213,30 @@ export default function ArticleChecker() {
 
             <div className="space-y-4">
               <div>
-                <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
-                  Wyjaśnienie:
-                </h4>
-                <div className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                <h4 className="font-medium mb-2">Wyjaśnienie:</h4>
+                <div className="text-sm mb-4">
                   <Markdown remarkPlugins={[remarkGfm]}>
                     {result.reasoning}
                   </Markdown>
                 </div>
 
-                <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-2">
-                  Kluczowe wskaźniki:
-                </h4>
+                <h4 className="font-medium mb-2">Kluczowe wskaźniki:</h4>
                 <ul className="space-y-2">
                   {result.indicators.map((indicator, index) => (
-                    <li
-                      key={index}
-                      className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-400"
-                    >
-                      <span className="w-1.5 h-1.5 bg-current rounded-full mt-2 shrink-0" />
+                    <li key={index} className="flex items-start gap-2 text-sm">
+                      <span className="w-1.5 h-1.5 bg-current rounded-full mt-2" />
                       {indicator}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-border">
-                <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-1">
-                  Zalecenie:
-                </h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+              <div className="p-4 bg-white dark:bg-slate-800 rounded-lg border">
+                <h4 className="font-medium mb-1">Zalecenie:</h4>
+                <p className="text-sm">
                   {result.isAI
-                    ? "Zalecamy ostrożność i weryfikację informacji w innych, wiarygodnych źródłach przed ich udostępnieniem."
-                    : "Artykuł wydaje się wiarygodny, ale zawsze warto porównać informacje z innymi źródłami."}
+                    ? "Zalecamy ostrożność i weryfikację informacji w innych źródłach."
+                    : "Artykuł wydaje się wiarygodny, ale warto porównać informacje z innymi źródłami."}
                 </p>
               </div>
             </div>

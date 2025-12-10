@@ -11,7 +11,7 @@ const _Inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "VeroAI",
-  description: `VeroAI wykorzystuje sztuczną inteligencję, aby pomóc seniorom i dzieciom wykrywać fałszywe zdjęcia, nieprawdziwe wiadomości i podejrzane e-maile. Prosty i bezpieczny.`,
+  description: `VeroAI wykorzystuje sztuczną inteligencję, aby pomóc seniorom i dzieciom wykrywać fałszywe zdjęcia, nieprawdziwe wiadomości i podejrzane e-maile.`,
   icons: {
     icon: [
       {

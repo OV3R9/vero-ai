@@ -24,8 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "react-hot-toast";
 import supabase from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-
-type ResultStatus = "phishing" | "safe" | "suspicious";
+import { ResultStatus } from "@/lib/types";
 
 interface LinkAnalysis {
   url: string;
@@ -52,6 +51,42 @@ const EmailChecker = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
+  const saveSuspiciousEmail = async (analysisResult: AnalysisResult) => {
+    try {
+      if (
+        analysisResult.status === "suspicious" ||
+        analysisResult.status === "phishing"
+      ) {
+        const { error } = await supabase.from("suspicious_emails").insert({
+          sender_email: senderEmail,
+          email_content: emailContent,
+          confidence: analysisResult.confidence,
+          status: analysisResult.status,
+          analysis_result: JSON.stringify(analysisResult),
+        });
+
+        if (error) {
+          return false;
+        }
+
+        if (analysisResult.status === "phishing") {
+          toast.success(
+            "E-mail został oznaczony jako phishing i zapisany w bazie danych."
+          );
+        } else if (analysisResult.status === "suspicious") {
+          toast.success(
+            "E-mail został oznaczony jako podejrzany i zapisany w bazie danych."
+          );
+        }
+
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
+  };
+
   const analyzeEmail = async () => {
     if (!senderEmail || !emailContent) {
       toast.error("Wpisz adres nadawcy i treść e-maila.");
@@ -74,8 +109,13 @@ const EmailChecker = () => {
       }
 
       setResult(data);
-    } catch (e) {
-      toast.error("Błąd podczas analizy wiadomości.");
+
+      const isSaved = await saveSuspiciousEmail(data);
+      if (!isSaved) {
+        toast.error("Błąd podczas zapisywania e-maila.");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Błąd podczas analizy wiadomości.");
     }
 
     setIsAnalyzing(false);

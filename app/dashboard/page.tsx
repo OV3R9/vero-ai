@@ -23,7 +23,7 @@ const Dashboard = () => {
     {
       to: "/dashboard/sprawdz-artykul",
       icon: Newspaper,
-      title: "Weryfikator Wiadomości",
+      title: "Weryfikator Newsów",
       description: "Sprawdź wiarygodność artykułu i wykryj fałszywe informacje",
       color: "bg-green-500/10 text-green-600",
     },
@@ -47,10 +47,14 @@ const Dashboard = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="flex flex-wrap gap-6">
         {tools.map((tool) => (
-          <Link key={tool.to} href={tool.to} className="group">
-            <Card className="h-full border-border min-w-[305px] hover:border-primary/50 hover:shadow-lg transition-all duration-300">
+          <Link
+            key={tool.to}
+            href={tool.to}
+            className="group flex-1 block min-w-[280px]"
+          >
+            <Card className="h-full border-border hover:border-primary/50 hover:shadow-lg transition-all duration-300">
               <CardHeader>
                 <div
                   className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 ${tool.color}`}
