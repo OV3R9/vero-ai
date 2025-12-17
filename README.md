@@ -2,7 +2,8 @@
 
 ![Main Page](public/mockups/main-page.png)  
 
-VeroAI is a powerful and intuitive platform that uses **Gemini**, to help seniors and children identify fake images, misleading news, and phishing emails. With its user-friendly interface and advanced AI technology, VeroAI aims to protect users from online fraud and misinformation.
+VeroAI is a website made for Hackaton - _Krakow Innovation Games 2025_ in just 14 hours.
+It is a powerful and intuitive platform that uses **Gemini**, to help seniors and children identify fake images, misleading news, and phishing emails. With its user-friendly interface and advanced AI technology, VeroAI aims to protect users from online fraud and misinformation.
 
 ---
 
